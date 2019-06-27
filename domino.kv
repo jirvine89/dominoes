@@ -1,0 +1,144 @@
+#:kivy 1.0.9
+
+<TileWidget>:
+    size: 100, 200
+    canvas:
+        Rectangle:
+            source: self.image_file
+            pos: self.pos
+            size: self.size
+
+<BoardWidget>:
+        
+<ScoreboardWidget>:
+    player1_name: player1_name
+    player2_name: player2_name
+    player1_score: player1_score
+    player2_score: player2_score
+
+    size: 240, 180
+    padding: 10
+    rows: 2
+    cols: 2
+    canvas:
+        Color:
+            rgba: 0, 0, 0, 0.8
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Label:
+        id: player1_name
+        text: 'P1'
+        size_hint: (.7, 1)
+        font_size: 50
+    Label:
+        id: player1_score
+        text: '0'
+        size_hint: (.3, 1)
+        font_size: 50
+    Label:
+        id: player2_name
+        text: 'P2'
+        size_hint: (.7, 1)
+        font_size: 50
+    Label:
+        id: player2_score
+        text: '0'
+        size_hint: (.3, 1)
+        font_size: 50
+        
+
+<BoneyardWidget>:
+    col_default_width: 100
+    col_force_default: True
+    row_default_height: 200
+    row_force_default: True
+    canvas:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<HandWidget>:
+    spacing: 10
+    padding: 0
+
+<TextWidget>:
+    canvas:
+        Color:
+            rgba: 0, 0, 0, 0.8
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    Label:
+        id: label
+        text: "Hello world"
+        font_size: 40
+        pos: self.parent.pos
+        size: self.parent.size
+
+<DominoGame>:
+    player1_hand: player1_hand
+    player2_hand: player2_hand
+    boneyard: boneyard
+    board: board
+    scoreboard: scoreboard
+    text: text
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    HandWidget:
+        id: player1_hand
+        x: root.center_x - self.width / 2
+        y: 120
+
+    HandWidget:
+        id: player2_hand
+        x: root.center_x - self.width / 2
+        y: root.top - 230
+    
+    BoneyardWidget:
+        id: boneyard
+        x: 40
+        y: root.center_y - self.height / 2 + 20
+        width: 300
+        height: 1000
+        cols: 3
+        rows: 5
+
+    BoardWidget:
+        id: board
+        x: 450
+        width: 1000
+        height: 1000
+        center_y: 600 #root.center_y
+
+    ScoreboardWidget:
+        id: scoreboard
+        right: root.right - 50
+        top: root.top - 50
+
+    TextWidget:
+        id: text
+        center_x: root.center_x
+        y: 20
+        height: 80
+        width: 1500
+
+    TextInput:
+        id: move_input
+        right: root.right - 50 - 80
+        y: root.y + 120
+        size: 100, 80
+
+    Button:
+        right: root.right - 50
+        y: root.y + 120
+        size: 80, 80
+        on_press: root.make_move(move_input.text)
+
+
