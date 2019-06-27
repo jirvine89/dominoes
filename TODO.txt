@@ -2,23 +2,21 @@
   - Tests for each class
   - Tests for make_move algos
   - Tests for internal state (history)
-* Build more bot algos
+* Tree search algo
+  - Function to evaluate probability of winning given state
+  - Tree search on state function: model drawing
+  - Go out more steps
+* Heuristics
   - Deduce tiles they don't have from skipped scores/knocks
   - Box out with numbers you have
   - Keep open if on serve, closed if not
   - Incorporate probabilities for opponent moves
-  - Go out more steps
   - Tile values, consider follow-up tiles
 * Build interactive UI: 
-  - Board to image of connected dominoes
-  - Show one hand and hide others
+  - Full board display, with bending
   - Show possible moves, scoring moves, suggestions from bots
-  - Make moves based on player clicks, bot for opponent
-  - Transitions of tiles when moves are made
+  - Add scoreboard for multiple games
 * Reinforcement learning
   - Learn about RL from self-study course
   - Try some basic things
-* Speed up
-  - See if necessary for RL
-  - Diagnostics for bottlenecks
-  - (Maybe) remove board data structures and construct from history
+  - If necessary, speed up the core
