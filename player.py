@@ -20,7 +20,7 @@ class Player(object):
   def add_tiles(self, tiles_list):
     for tile in tiles_list:
       self.add_tile(tile)
-  
+
   def remove_tile(self, tile):
     assert self.has_tile(tile)
     self.hand.remove(tile)
@@ -53,38 +53,56 @@ class Player(object):
   def __repr__(self):
     return '%s (%d): %s' % (self.name, self.total_score, str(self.hand))
 
+def is_valid_move_str(move_str):
+    if move_str == 'Pass':
+        return True
+    move_split = move_str.split(',')
+    if len(move_split) != 3:
+        return False
+    if len(move_split) != 3:
+        return False
+    if (move_split[0] not in [str(i) for i in range(7)] or
+        move_split[1] not in [str(i) for i in range(7)]):
+        return False
+    dir_str = move_split[2]
+    if dir_str not in ['U', 'D', 'R', 'L']:
+        return False
+    return True
+
+def parse_move_str(move_str):
+    if move_str == 'Pass':
+        return None, None
+    move_split = move_str.split(',')
+    tile = Tile(int(move_split[0]), int(move_split[1]))
+    dir_str = move_split[2]
+    if dir_str == 'U':
+      direction = Dir.UP
+    elif dir_str == 'D':
+      direction = Dir.DOWN
+    elif dir_str == 'R':
+      direction = Dir.RIGHT
+    elif dir_str == 'L':
+      direction = Dir.LEFT
+    else:
+      assert False
+    return tile, direction
 
 class User(Player):
   def pick_move(self, board):
     valid_move = False
     while not valid_move:
       move_str = raw_input("Make a move!\n")
-      if move_str == 'Pass':
-        return None
-      move_split = move_str.split(',')
-      if len(move_split) != 3:
+      if not is_valid_move_str(move_str):
         print("Invalid move. Try again.\n")
-        continue
-      tile = Tile(int(move_split[0]), int(move_split[1]))
-      dir_str = move_split[2]
-      if dir_str == 'U':
-        direction = Dir.UP
-      elif dir_str == 'D':
-        direction = Dir.DOWN
-      elif dir_str == 'R':
-        direction = Dir.RIGHT
-      elif dir_str == 'L':
-        direction = Dir.LEFT
       else:
-        print("Invalid direction, use [U, D, L, R].\n")
-        continue
-      if tile not in self.hand:
-        print("You don't have tile %s\n" % str(tile))
-        continue
-      if not board.valid_move(tile, direction):
-        print("This move is invalid. Try again.\n")
-        continue
-      return (tile, direction)
+        (tile, direction) = parse_move_str(move_str)
+        if tile not in self.hand:
+          print("You don't have tile %s\n" % str(tile))
+          continue
+        if not board.valid_move(tile, direction):
+          print("This move is invalid. Try again.\n")
+          continue
+        return (tile, direction)
 
 
 class RandomBot(Player):
@@ -97,12 +115,12 @@ class RandomBot(Player):
       for direction in dir_order:
         if board.valid_move(tile, direction):
           return (tile, direction)
-    return None
+    return None, None
 
 
 class GreedyScoringBot(Player):
   def pick_move(self, board):
-    best_move = None
+    best_move = None, None
     best_score = 0
     for tile in self.hand:
       for direction in all_dirs():
@@ -111,7 +129,7 @@ class GreedyScoringBot(Player):
           total_count = board.total_count
           score = total_count if (total_count % 5 == 0) else 0
           board.undo_last_move()
-          if not best_move:
+          if not best_move[0]:
             best_move, best_score = (tile, direction), score
           elif score > best_score:
             best_move, best_score = (tile, direction), score
@@ -123,7 +141,7 @@ class GreedyScoringDefensiveBot(Player):
     print("Playing move...")
     print(self.hand)
     # Score highest score if can
-    best_move = None
+    best_move = None, None
     best_score = 0
     valid_moves = []
     for tile in self.hand:
@@ -137,12 +155,12 @@ class GreedyScoringDefensiveBot(Player):
           board.undo_last_move()
           if score > best_score:
             best_move, best_score = move, score
-    if best_move:
+    if best_move[0]:
       return best_move
 
     # If no valid moves, draw or knock
     if len(valid_moves) == 0:
-      return None
+      return None, None
 
     # Otherwise, play defensive move against scores on next turn
     other_tiles = (set(get_all_tiles()) - set(board.get_tiles_on_board()) -
@@ -199,12 +217,12 @@ class CountingChoicesBot(GreedyScoringDefensiveBot):
                   if redundant: continue
                 other_moves_made[other_tile].append(other_direction)
                 print(tile, direction, other_tile, other_direction)
-                choices += 1              
+                choices += 1
           board.undo_last_move()
     if choices > 0:
       self.total_choices *= choices
     print(choices)
     print(self.total_choices)
     return super(CountingChoicesBot, self).pick_move(board)
-    
+
 

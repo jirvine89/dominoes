@@ -23,7 +23,7 @@ class Board:
   def _update_spinner(self, tile):
     if not self.spinner and tile.is_double():
       self.spinner = tile
-      
+
   def get_total_count(self):
     if not self.main_row:
       return 0
@@ -34,7 +34,7 @@ class Board:
       down_points = 0 if not self.down else self.down[-1].down_points()
       return (up_points + down_points + self.main_row[0].left_points() +
               self.main_row[-1].right_points())
-    
+
   def _update_total_count(self):
     self.total_count = self.get_total_count()
 
@@ -96,10 +96,10 @@ class Board:
       return self._orientation_big_side_in(direction)
     else:
       return self._orientation_big_side_out(direction)
-  
+
   def _set_orientation(self, tile, direction):
     tile.orientation = self._get_orientation(tile, direction)
-    
+
   def add_to_left(self, tile):
     self._set_orientation(tile, Dir.LEFT)
     self.main_row = [tile] + self.main_row
@@ -121,7 +121,7 @@ class Board:
     self.main_row = self.main_row[:-1]
     if self.spinner and removed_tile == self.spinner:
       self.spinner = None
- 
+
   def add_to_top(self, tile):
     self._set_orientation(tile, Dir.UP)
     self.up.append(tile)
@@ -139,7 +139,7 @@ class Board:
   def _spinner_on_end(self):
     return self.spinner and self.main_row and (
         self.main_row[0] == self.spinner or self.main_row[-1] == self.spinner)
-  
+
   def _can_play_up_or_down(self):
     if self.spinner and not self._spinner_on_end():
       return True
@@ -168,7 +168,7 @@ class Board:
     self.history.append((tile, direction, player_name))
 
   def undo_last_move(self):
-    last_move = self.history.pop() 
+    last_move = self.history.pop()
     tile, direction, _ = last_move
     if tile is None:
       return last_move
@@ -205,6 +205,6 @@ class Board:
     return down_repr[:-2] + ']'
 
   def __repr__(self):
-    return ('Board:\nSpinner: ' +  str(self.spinner) + '\nMain row: ' + 
-            str(self.main_row) + '\nUp: ' + str(self.up) + '\nDown: ' + 
+    return ('Board:\nSpinner: ' +  str(self.spinner) + '\nMain row: ' +
+            str(self.main_row) + '\nUp: ' + str(self.up) + '\nDown: ' +
             self._down_repr() + '\nCount: ' + str(self.total_count))

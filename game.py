@@ -25,9 +25,9 @@ class Game:
   def _next_players_move(self):
     self.turn_index = (self.turn_index + 1) % len(self.players)
 
-  def _current_player(self):
+  def current_player(self):
     return self.players[self.turn_index]
-  
+
   def deal_tiles(self):
     for player in self.players:
       player.empty_hand()
@@ -42,6 +42,7 @@ class Game:
     self.board.bone_yard = set(all_tiles[starting_index:])
 
   def start_first_game(self):
+    self.deal_tiles()
     for double_val in range(MAX_SIDE_VALUE, -1, -1):
       double_tile = Tile(double_val, double_val)
       for i, player in enumerate(self.players):
@@ -50,7 +51,6 @@ class Game:
           self.make_move(double_tile, Dir.RIGHT)
           return
     # Redeal and start over
-    self.deal_tiles()
     self.start_first_game()
 
   def _domino_points(self):
@@ -109,12 +109,23 @@ class Game:
       player.add_score(self.board.total_count)
       self.last_move += ' and scored %d points' % (self.board.total_count)
 
+  def make_move_or_knock(self, tile, direction):
+    if not tile:
+      if self.board.tiles_in_bone_yard():
+        self.draw()
+      else:
+        self.knock()
+    else:
+      self.make_move(tile, direction)
+
   def make_move(self, tile, direction):
-    player = self._current_player()
+    player = self.current_player()
     if not player.has_tile(tile):
       self.last_move = '%s doesn\'t have tile %s' % (player.name, str(tile))
+      return False
     elif not self.board.valid_move(tile, direction):
       self.last_move = 'Can\'t play %s %s' % (str(tile), direction.name)
+      return False
     else:
       player.remove_tile(tile)
       self.board.make_move(tile, direction, player.name)
@@ -124,16 +135,17 @@ class Game:
         self._domino(player)
       else:
         self._next_players_move()
-    self._check_for_win()
+      self._check_for_win()
+      return True
 
   def draw(self):
-    player = self._current_player()
+    player = self.current_player()
     tile = self.board.draw_from_bone_yard(player.name)
     player.add_tile(tile)
     self.last_move = '%s drew tile %s' % (player.name, str(tile))
-  
+
   def knock(self):
-    player = self._current_player()
+    player = self.current_player()
     self.last_move = '%s knocked' % player.name
     self.board.knock(player.name)
     if self._game_is_blocked_out():
@@ -141,18 +153,12 @@ class Game:
     else:
       self._next_players_move()
 
-  def get_next_move(self):
-    player = self._current_player()
+  def get_next_move_from_player(self):
+    player = self.current_player()
     if player.is_out_of_tiles():
       return 'Game is over. Run game.deal_tiles() to continue with another'
     move = player.pick_move(self.board)
-    if not move:
-      if self.board.tiles_in_bone_yard():
-        self.draw()
-      else:
-        self.knock()
-    else:
-      self.make_move(*move)
+    self.make_move_or_knock(*move)
 
   def play_round(self, verbose=False):
     self.deal_tiles()
@@ -160,7 +166,7 @@ class Game:
       print(self)
       print('\n')
     while not self.round_over:
-      self.get_next_move()
+      self.get_next_move_from_player()
       if verbose:
         print(self)
         print('\n')
@@ -168,7 +174,6 @@ class Game:
       print('\n=== GAME OVER ===')
 
   def play(self, verbose=False):
-    self.deal_tiles()
     self.start_first_game()
     if verbose:
       print(self)
@@ -176,7 +181,7 @@ class Game:
     i = 0
     while i < 1000:
       i += 1
-      self.get_next_move()
+      self.get_next_move_from_player()
       if verbose:
         print(self)
         print('\n')
@@ -191,7 +196,7 @@ class Game:
           print(self)
           print('\n')
     assert False
-    
+
 
   def __repr__(self):
     return '%s\nPlayers:\n%s\nTurn:%d\nLast Move: %s' % (str(self.board), str(self.players), self.turn_index+1, self.last_move)

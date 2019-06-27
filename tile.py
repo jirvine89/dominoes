@@ -9,7 +9,17 @@ class Tile:
     self.small_side = min(side_1, side_2)
     self.big_side = max(side_1, side_2)
     self.orientation = Orientation.NOT_ON_BOARD
-  
+
+  def get_image_file(self):
+    num_to_word_map = {
+        0: "zero", 1: "one", 2: "two", 3: "three", 4: "four",
+        5: "five", 6: "six"
+    }
+    small_word = num_to_word_map[self.small_side]
+    big_word = num_to_word_map[self.big_side]
+    file_name = "%s_%s.png" % (small_word, big_word)
+    return "/Users/jirvine/dominoes/tile_images/" + file_name
+
   def is_double(self):
     return self.small_side == self.big_side
 
@@ -33,7 +43,7 @@ class Tile:
 
   def left_points(self):
     return self._dir_points(Orientation.BIG_LEFT, Orientation.BIG_RIGHT)
-  
+
   def left_side(self):
     return self._dir_side(Orientation.BIG_LEFT, Orientation.BIG_RIGHT)
 
@@ -67,13 +77,13 @@ class Tile:
   def switched_sides(self):
     ordered_sides = self.ordered_sides()
     return ordered_sides[1], ordered_sides[0]
-  
+
   def switched_repr(self):
     return '[%d|%d]' % self.switched_sides()
-  
+
   def __eq__(self, tile):
     return self.small_side == tile.small_side and self.big_side == tile.big_side
-  
+
   def __hash__(self):
     return hash((self.small_side, self.big_side))
 
