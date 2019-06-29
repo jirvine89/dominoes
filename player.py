@@ -56,25 +56,18 @@ class Player(object):
 def is_valid_move_str(move_str):
     if move_str == 'Pass':
         return True
-    move_split = move_str.split(',')
-    if len(move_split) != 3:
-        return False
-    if len(move_split) != 3:
-        return False
-    if (move_split[0] not in [str(i) for i in range(7)] or
-        move_split[1] not in [str(i) for i in range(7)]):
-        return False
-    dir_str = move_split[2]
-    if dir_str not in ['U', 'D', 'R', 'L']:
+    if (len(move_str) != 3 or
+        move_str[0] not in '0123456' or
+        move_str[1] not in '0123456' or
+        move_str[2] not in 'UDRL'):
         return False
     return True
 
 def parse_move_str(move_str):
     if move_str == 'Pass':
         return None, None
-    move_split = move_str.split(',')
-    tile = Tile(int(move_split[0]), int(move_split[1]))
-    dir_str = move_split[2]
+    tile = Tile(int(move_str[0]), int(move_str[1]))
+    dir_str = move_str[2]
     if dir_str == 'U':
       direction = Dir.UP
     elif dir_str == 'D':

@@ -142,7 +142,7 @@ class Game:
     player = self.current_player()
     tile = self.board.draw_from_bone_yard(player.name)
     player.add_tile(tile)
-    self.last_move = '%s drew tile %s' % (player.name, str(tile))
+    self.last_move = '%s drew a tile' % player.name #%s' % (player.name, str(tile))
 
   def knock(self):
     player = self.current_player()

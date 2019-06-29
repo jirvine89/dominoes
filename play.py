@@ -1,4 +1,6 @@
-from player import RandomBot, GreedyScoringBot, GreedyScoringDefensiveBot, User, is_valid_move_str, parse_move_str
+import sys, getopt
+import player as pl
+#from player import RandomBot, GreedyScoringBot, GreedyScoringDefensiveBot, User, is_valid_move_str, parse_move_str
 from game import Game
 from dominoes_util import Orientation
 from kivy.app import App
@@ -138,28 +140,30 @@ class DominoGame(Widget):
     tile_width = NumericProperty(TILE_WIDTH)
     tile_height = NumericProperty(TILE_HEIGHT)
 
-    def update_widgets(self):
-        self.player1_hand.set_hand(self.player1.hand)
-        self.player2_hand.set_hand(self.player2.hand) #, hidden=True)
-        self.boneyard.set_boneyard(len(self.game.board.bone_yard))
-        self.board.set_board(self.game.board)
-        self.scoreboard.set_scoreboard(self.player1, self.player2)
-        self.text.ids["label"].text = self.game.last_move.replace('\n', ' -- ')
-
-    def __init__(self, **kwargs):
+    def __init__(self, hidden, bot1, bot2, **kwargs):
         super(DominoGame, self).__init__(**kwargs)
-        self.player1 = RandomBot("player")
-        self.player2 = RandomBot("bot")
+        self.hidden = hidden
+        self.player1 = getattr(pl, bot1)("P1")
+        self.player2 = getattr(pl, bot2)("P2")
         self.game = Game([self.player1, self.player2], 1000)
         self.game.start_first_game()
         self.update_widgets()
         self.update_widgets()
 
+    def update_widgets(self):
+        self.player1_hand.set_hand(self.player1.hand)
+        self.player2_hand.set_hand(self.player2.hand, hidden=self.hidden)
+        self.boneyard.set_boneyard(len(self.game.board.bone_yard))
+        self.board.set_board(self.game.board)
+        self.scoreboard.set_scoreboard(self.player1, self.player2)
+        self.text.ids["label"].text = self.game.last_move.replace('\n', ' -- ')
+
     def make_move(self, move_str):
         if self.game.game_over:
             return
-        if True: #self.game.current_player() == self.player2:
-            bot_move = self.game.current_player().pick_move(self.game.board)
+        player = self.game.current_player()
+        if move_str == '':
+            bot_move = player.pick_move(self.game.board)
             self.game.make_move_or_knock(*bot_move)
             if self.game.game_over:
                 self.update_widgets()
@@ -169,13 +173,13 @@ class DominoGame(Widget):
                 self.game.round_over = False
             self.update_widgets()
         else:
-            if not is_valid_move_str(move_str):
+            if not pl.is_valid_move_str(move_str):
                 self.text.ids["label"].text = "%s is not a valid move string" % move_str
             else:
-                tile, direction = parse_move_str(move_str)
+                tile, direction = pl.parse_move_str(move_str)
                 if tile:
-                    if tile not in self.player1.hand:
-                        self.text.ids["label"].text = "%s not in hand" % (str(tile))
+                    if tile not in player.hand:
+                        self.text.ids["label"].text = "%s not in %s's hand" % (str(tile), player.name)
                         return
                     if not self.game.board.valid_move(tile, direction):
                         self.text.ids["label"].text = ("%s, %s is not a valid move"
@@ -185,12 +189,27 @@ class DominoGame(Widget):
                 self.update_widgets()
 
 class DominoApp(App):
+    def __init__(self, hidden, bot1, bot2, **kwargs):
+        super(DominoApp, self).__init__(**kwargs)
+        self.hidden = hidden
+        self.bot1 = bot1
+        self.bot2 = bot2
+
     def build(self):
         Config.set('graphics', 'width', '1500')
         Config.set('graphics', 'height', '1000')
-        game = DominoGame()
+        game = DominoGame(self.hidden, self.bot1, self.bot2)
         return game
 
 
 if __name__ == "__main__":
-    DominoApp().run()
+    opts, args = getopt.getopt(sys.argv[1:], "h", ["bot1=","bot2="])
+    hidden = "-h" in opts
+    bot1, bot2 = "RandomBot", "RandomBot"
+    for opt, arg in opts:
+        if opt == "bot1":
+            bot1 = arg
+        if opt == "bot2":
+            bot2 = arg
+    print hidden
+    DominoApp(hidden, bot1, bot2).run()
