@@ -26,7 +26,6 @@ class TileWidget(Widget):
     angle = NumericProperty(0)
     width = NumericProperty(TILE_WIDTH)
     height = NumericProperty(TILE_HEIGHT)
-    #orientation = Orientation.NOT_ON_BOARD
 
 class BoardWidget(Widget):
     tile_widgets = []
@@ -36,54 +35,46 @@ class BoardWidget(Widget):
         for tile_widget in self.tile_widgets:
            self.remove_widget(tile_widget)
 
+    def add_tile(self, tile, x, y, direction):
+        tile_widget = TileWidget()
+        tile_widget.image_file = tile.get_image_file()
+        x_offset, y_offset = 0, 0
+        vertical = direction in ['UP', 'DOWN']
+        if tile.orientation == Orientation.BIG_LEFT:
+            tile_widget.angle = 270
+            x_offset = tile_widget.width
+        elif tile.orientation == Orientation.BIG_RIGHT:
+            tile_widget.angle = 90
+            x_offset = TILE_WIDTH
+        elif tile.orientation == Orientation.BIG_UP:
+            tile_widget.angle = 180
+        elif tile.orientation == Orientation.DOUBLE and vertical:
+            tile_widget.angle = 90
+            if direction == 'UP':
+                y_offset = -TILE_WIDTH
+            else:
+                y_offset = TILE_WIDTH
+        tile_widget.x = x + x_offset / 2
+        tile_widget.y = y + y_offset / 2
+        self.add_widget(tile_widget)
+        self.tile_widgets.append(tile_widget)
+        return y_offset if vertical else x_offset
+
+
     def set_board(self, board):
         self.reset()
+        x = self.x
+        y = self.y + self.height / 2 - TILE_HEIGHT /2
         for tile in board.main_row:
-            tile_widget = TileWidget()
-            tile_widget.image_file = tile.get_image_file()
-            rotation_width = 0
-            if tile.orientation == Orientation.BIG_LEFT:
-                tile_widget.angle = 270
-                rotation_width = tile_widget.width
-            elif tile.orientation == Orientation.BIG_RIGHT:
-                tile_widget.angle = 90
-                rotation_width = tile_widget.width
-            tile_widget.x = self.x + self.width + rotation_width / 2
-            tile_widget.y = self.y + self.height / 2 - tile_widget.height / 2
-            self.add_widget(tile_widget)
-            self.tile_widgets.append(tile_widget)
-            self.width += tile_widget.width + rotation_width
+            x_shift = TILE_WIDTH + self.add_tile(tile, x, y, 'RIGHT')
             if board.spinner and tile == board.spinner:
-                top = tile_widget.top
-                bottom = tile_widget.y
+                bottom = y
+                top = bottom + TILE_HEIGHT
                 for up_tile in board.up:
-                    up_tile_widget = TileWidget()
-                    up_tile_widget.image_file = up_tile.get_image_file()
-                    up_rotation_height = 0
-                    if up_tile.orientation == Orientation.BIG_UP:
-                        up_tile_widget.angle = 180
-                    elif up_tile.orientation == Orientation.DOUBLE:
-                        up_tile_widget.angle = 90
-                        up_rotation_height = up_tile_widget.width
-                    up_tile_widget.x = tile_widget.x
-                    up_tile_widget.y = top - up_rotation_height / 2
-                    self.add_widget(up_tile_widget)
-                    self.tile_widgets.append(up_tile_widget)
-                    top += up_tile_widget.height - up_rotation_height
+                    top += TILE_HEIGHT + self.add_tile(up_tile, x, top, 'UP')
                 for down_tile in board.down:
-                    down_tile_widget = TileWidget()
-                    down_tile_widget.image_file = down_tile.get_image_file()
-                    down_rotation_height = 0
-                    if down_tile.orientation == Orientation.BIG_UP:
-                        down_tile_widget.angle = 180
-                    elif down_tile.orientation == Orientation.DOUBLE:
-                        down_tile_widget.angle = 90
-                        down_rotation_height = down_tile_widget.width
-                    down_tile_widget.x = tile_widget.x
-                    down_tile_widget.y = bottom - down_tile_widget.height + down_rotation_height / 2
-                    self.add_widget(down_tile_widget)
-                    self.tile_widgets.append(down_tile_widget)
-                    bottom -= down_tile_widget.height - down_rotation_height
+                    bottom -= TILE_HEIGHT - self.add_tile(down_tile, x, bottom - TILE_HEIGHT, 'DOWN')
+            x += x_shift
 
 
 class ScoreboardWidget(GridLayout):
