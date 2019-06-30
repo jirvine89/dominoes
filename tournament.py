@@ -6,7 +6,7 @@ def main():
   player1 = GreedyScoringDefensiveBot('Defensive')
   player2 = GreedyScoringBot('GreedyBot')
   players = [player1, player2]
-  
+
   num_games = 1000
   play_to = 150
   wins = [0 for p in players]
@@ -15,7 +15,7 @@ def main():
     end_scores = game.play()
     for i, score in enumerate(end_scores):
       if score >= play_to:
-        winner_idx = i  
+        winner_idx = i
     winner = players[winner_idx]
     wins[winner_idx] += 1
   print(wins)

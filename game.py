@@ -73,7 +73,6 @@ class Game:
     domino_points = self._domino_points()
     player.add_score(domino_points)
     self.last_move += '\nDominoes motha-fucka! %d points' % domino_points
-    self._empty_hands()
     self.round_over = True
 
   def _game_is_blocked_out(self):
@@ -129,8 +128,8 @@ class Game:
     else:
       player.remove_tile(tile)
       self.board.make_move(tile, direction, player.name)
-      self.score_move(player)
       self.last_move = '%s played tile %s %s' % (player.name, str(tile), direction.name)
+      self.score_move(player)
       if player.is_out_of_tiles():
         self._domino(player)
       else:
@@ -153,49 +152,49 @@ class Game:
     else:
       self._next_players_move()
 
-  def get_next_move_from_player(self):
-    player = self.current_player()
-    if player.is_out_of_tiles():
-      return 'Game is over. Run game.deal_tiles() to continue with another'
-    move = player.pick_move(self.board)
-    self.make_move_or_knock(*move)
+  #def get_next_move_from_player(self):
+  #  player = self.current_player()
+  #  if player.is_out_of_tiles():
+  #    return 'Game is over. Run game.deal_tiles() to continue with another'
+  #  move = player.pick_move(self.board)
+  #  self.make_move_or_knock(*move)
 
-  def play_round(self, verbose=False):
-    self.deal_tiles()
-    if verbose:
-      print(self)
-      print('\n')
-    while not self.round_over:
-      self.get_next_move_from_player()
-      if verbose:
-        print(self)
-        print('\n')
-    if verbose:
-      print('\n=== GAME OVER ===')
+  #def play_round(self, verbose=False):
+  #  self.deal_tiles()
+  #  if verbose:
+  #    print(self)
+  #    print('\n')
+  #  while not self.round_over:
+  #    self.get_next_move_from_player()
+  #    if verbose:
+  #      print(self)
+  #      print('\n')
+  #  if verbose:
+  #    print('\n=== GAME OVER ===')
 
-  def play(self, verbose=False):
-    self.start_first_game()
-    if verbose:
-      print(self)
-      print('\n')
-    i = 0
-    while i < 1000:
-      i += 1
-      self.get_next_move_from_player()
-      if verbose:
-        print(self)
-        print('\n')
-      if self.game_over:
-        if verbose:
-          print('\n=== GAME OVER ===')
-        return [player.total_score for player in self.players]
-      if self.round_over:
-        self.round_over = False
-        self.deal_tiles()
-        if verbose:
-          print(self)
-          print('\n')
-    assert False
+  #def play(self, verbose=False):
+  #  self.start_first_game()
+  #  if verbose:
+  #    print(self)
+  #    print('\n')
+  #  i = 0
+  #  while i < 1000:
+  #    i += 1
+  #    self.get_next_move_from_player()
+  #    if verbose:
+  #      print(self)
+  #      print('\n')
+  #    if self.game_over:
+  #      if verbose:
+  #        print('\n=== GAME OVER ===')
+  #      return [player.total_score for player in self.players]
+  #    if self.round_over:
+  #      self.round_over = False
+  #      self.deal_tiles()
+  #      if verbose:
+  #        print(self)
+  #        print('\n')
+  #  assert False
 
 
   def __repr__(self):

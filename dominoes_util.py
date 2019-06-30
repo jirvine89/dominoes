@@ -23,4 +23,3 @@ def opposite(d):
   if d == Dir.RIGHT: return Dir.LEFT
   if d == Dir.UP: return Dir.DOWN
   if d == Dir.DOWN: return Dir.UP
-

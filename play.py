@@ -1,6 +1,6 @@
 import sys, getopt
-import player as pl
-#from player import RandomBot, GreedyScoringBot, GreedyScoringDefensiveBot, User, is_valid_move_str, parse_move_str
+import algos
+from player import Player, is_valid_move_str, parse_move_str
 from game import Game
 from dominoes_util import Orientation
 from kivy.app import App
@@ -143,12 +143,16 @@ class DominoGame(Widget):
     def __init__(self, hidden, bot1, bot2, **kwargs):
         super(DominoGame, self).__init__(**kwargs)
         self.hidden = hidden
-        self.player1 = getattr(pl, bot1)("P1")
-        self.player2 = getattr(pl, bot2)("P2")
+        self.player1 = Player("P1")
+        self.player2 = Player("P2")
+        self.bot1 = getattr(algos, bot1)()
+        self.bot2 = getattr(algos, bot2)()
         self.game = Game([self.player1, self.player2], 1000)
         self.game.start_first_game()
         self.update_widgets()
         self.update_widgets()
+        print self.bot1
+        print self.bot2
 
     def update_widgets(self):
         self.player1_hand.set_hand(self.player1.hand)
@@ -161,22 +165,27 @@ class DominoGame(Widget):
     def make_move(self, move_str):
         if self.game.game_over:
             return
+        if self.game.round_over:
+            self.game.deal_tiles()
+            self.game.round_over = False
+            self.update_widgets()
+            return
         player = self.game.current_player()
         if move_str == '':
-            bot_move = player.pick_move(self.game.board)
+            if player.name == "P1":
+                bot_move = self.bot1.pick_move(self.game)
+            else:
+                bot_move = self.bot2.pick_move(self.game)
             self.game.make_move_or_knock(*bot_move)
             if self.game.game_over:
                 self.update_widgets()
                 return
-            if self.game.round_over:
-                self.game.deal_tiles()
-                self.game.round_over = False
             self.update_widgets()
         else:
-            if not pl.is_valid_move_str(move_str):
+            if not is_valid_move_str(move_str):
                 self.text.ids["label"].text = "%s is not a valid move string" % move_str
             else:
-                tile, direction = pl.parse_move_str(move_str)
+                tile, direction = parse_move_str(move_str)
                 if tile:
                     if tile not in player.hand:
                         self.text.ids["label"].text = "%s not in %s's hand" % (str(tile), player.name)
@@ -207,9 +216,8 @@ if __name__ == "__main__":
     hidden = "-h" in opts
     bot1, bot2 = "RandomBot", "RandomBot"
     for opt, arg in opts:
-        if opt == "bot1":
+        if opt == "--bot1":
             bot1 = arg
-        if opt == "bot2":
+        if opt == "--bot2":
             bot2 = arg
-    print hidden
     DominoApp(hidden, bot1, bot2).run()
