@@ -155,7 +155,7 @@ class Board:
       return (tile.small_side == self._get_end_side(direction) or
               tile.big_side == self._get_end_side(direction))
 
-  def make_move(self, tile, direction, player_name):
+  def make_move(self, tile, direction):
     if direction == Dir.LEFT:
       self.add_to_left(tile)
     elif direction == Dir.RIGHT:
@@ -165,11 +165,8 @@ class Board:
     elif direction == Dir.DOWN:
       self.add_to_bottom(tile)
     self._update_total_count()
-    self.history.append((tile, direction, player_name))
 
-  def undo_last_move(self):
-    last_move = self.history.pop()
-    tile, direction, _ = last_move
+  def undo_move(self, tile, direction):
     if tile is None:
       return last_move
     if direction == Dir.LEFT:
@@ -182,18 +179,13 @@ class Board:
       self.remove_from_bottom()
     self._update_total_count()
     tile.orientation = Orientation.NOT_ON_BOARD
-    return last_move
 
   def tiles_in_bone_yard(self):
     return len(self.bone_yard) > 0
 
-  def knock(self, player_name):
-    self.history.append((None, None, player_name))
-
   def draw_from_bone_yard(self, player_name):
     tile = random.choice(tuple(self.bone_yard))
     self.bone_yard.remove(tile)
-    self.history.append((None, None, player_name))
     return tile
 
   def _down_repr(self):

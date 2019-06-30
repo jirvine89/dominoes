@@ -16,6 +16,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.vector import Vector
 
 #TODO:
+# * Have game tallies and restart game when over
+# * Display info in corner: turn, spinner, board count
 # * Bend corners when ends are too long
 # * Make board centered on page
 # * Better move interface
@@ -182,6 +184,10 @@ class DominoGame(Widget):
                 return
             self.update_widgets()
         else:
+            if move_str == 'Undo':
+                self.game.undo_last_move()
+                self.update_widgets()
+                return
             if not is_valid_move_str(move_str):
                 self.text.ids["label"].text = "%s is not a valid move string" % move_str
             else:

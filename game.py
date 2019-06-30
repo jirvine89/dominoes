@@ -1,7 +1,7 @@
 import random
 from tile import Tile, get_all_tiles, MAX_SIDE_VALUE
 from board import Board
-from dominoes_util import Dir
+from dominoes_util import Dir, Orientation
 
 class Game:
   def __init__(self, players, play_to):
@@ -16,6 +16,7 @@ class Game:
     self.play_to = play_to
     self.game_over = False
     self.round_over = False
+    self.history = []
 
   def _reset_players(self):
     for player in self.players:
@@ -28,11 +29,37 @@ class Game:
   def current_player(self):
     return self.players[self.turn_index]
 
+  def _get_player_and_index_by_name(self, name):
+    for i, player in enumerate(self.players):
+        if player.name == name:
+            return player, i
+
+  def undo_last_move(self):
+    if not self.history:
+        return
+    tile, direction, player_name, score = self.history.pop()
+    self.board.undo_move(tile, direction)
+    player, idx = self._get_player_and_index_by_name(player_name)
+    tile.orientation = Orientation.NOT_ON_BOARD
+    player.hand.add(tile)
+    player.total_score -= score
+    self.turn_index = idx
+    if tile:
+        self.last_move = 'Undid move %s %s by %s' % (str(tile), direction.name, player.name)
+    else:
+        # TODO: Handle this better
+        self.last_move = 'WARNING: Undid draw by %s, tiles may be wrong!' % player.name
+    if score:
+        self.last_move += ', which scored %d' % score
+    self.game_over = False
+    self.round_over = False
+
   def deal_tiles(self):
     for player in self.players:
       player.empty_hand()
     self.board.reset()
     self.last_move = ''
+    self.history = []
     all_tiles = get_all_tiles()
     random.shuffle(all_tiles)
     starting_index = 0
@@ -74,6 +101,7 @@ class Game:
     player.add_score(domino_points)
     self.last_move += '\nDominoes motha-fucka! %d points' % domino_points
     self.round_over = True
+    return domino_points
 
   def _game_is_blocked_out(self):
     for player in self.players:
@@ -104,9 +132,12 @@ class Game:
         return
 
   def score_move(self, player):
+    score = 0
     if self.board.total_count and self.board.total_count % 5 == 0:
-      player.add_score(self.board.total_count)
-      self.last_move += ' and scored %d points' % (self.board.total_count)
+      score = self.board.total_count
+      player.add_score(score)
+      self.last_move += ' and scored %d points' % score
+    return score
 
   def make_move_or_knock(self, tile, direction):
     if not tile:
@@ -127,12 +158,14 @@ class Game:
       return False
     else:
       player.remove_tile(tile)
-      self.board.make_move(tile, direction, player.name)
+      self.board.make_move(tile, direction) #, player.name)
       self.last_move = '%s played tile %s %s' % (player.name, str(tile), direction.name)
-      self.score_move(player)
+      score = self.score_move(player)
       if player.is_out_of_tiles():
-        self._domino(player)
+        domino_points = self._domino(player)
+        self.history.append((tile, direction, player.name, score + domino_points))
       else:
+        self.history.append((tile, direction, player.name, score))
         self._next_players_move()
       self._check_for_win()
       return True
@@ -142,6 +175,7 @@ class Game:
     tile = self.board.draw_from_bone_yard(player.name)
     player.add_tile(tile)
     self.last_move = '%s drew a tile' % player.name #%s' % (player.name, str(tile))
+    self.history.append((None, None, player.name, 0))
 
   def knock(self):
     player = self.current_player()
