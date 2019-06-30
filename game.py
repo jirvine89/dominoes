@@ -120,7 +120,6 @@ class Game:
     self.last_move += (('\nGame is blocked out, %s has lowest total ' +
                        'points and scores %d points from the rest') %
                        (self.players[lowest_player_idx].name, block_out_points))
-    self._empty_hands()
     self.turn_index = lowest_player_idx
     self.round_over = True
 
@@ -180,7 +179,6 @@ class Game:
   def knock(self):
     player = self.current_player()
     self.last_move = '%s knocked' % player.name
-    self.board.knock(player.name)
     if self._game_is_blocked_out():
       self._score_block_out()
     else:
