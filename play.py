@@ -142,14 +142,14 @@ class DominoGame(Widget):
     tile_width = NumericProperty(TILE_WIDTH)
     tile_height = NumericProperty(TILE_HEIGHT)
 
-    def __init__(self, hidden, bot1, bot2, **kwargs):
+    def __init__(self, hidden, bot1, bot2, play_to, **kwargs):
         super(DominoGame, self).__init__(**kwargs)
         self.hidden = hidden
         self.player1 = Player("P1")
         self.player2 = Player("P2")
         self.bot1 = getattr(algos, bot1)()
         self.bot2 = getattr(algos, bot2)()
-        self.game = Game([self.player1, self.player2], 1000)
+        self.game = Game([self.player1, self.player2], play_to)
         self.game.start_first_game()
         self.update_widgets()
         self.update_widgets()
@@ -209,21 +209,25 @@ class DominoApp(App):
         self.hidden = hidden
         self.bot1 = bot1
         self.bot2 = bot2
+        self.play_to = play_to
 
     def build(self):
         Config.set('graphics', 'width', '1500')
         Config.set('graphics', 'height', '1000')
-        game = DominoGame(self.hidden, self.bot1, self.bot2)
+        game = DominoGame(self.hidden, self.bot1, self.bot2, self.play_to)
         return game
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "h", ["bot1=","bot2="])
+    opts, args = getopt.getopt(sys.argv[1:], "h", ["bot1=","bot2=","play_to="])
     hidden = "-h" in opts
     bot1, bot2 = "RandomBot", "RandomBot"
+    play_to = 150
     for opt, arg in opts:
         if opt == "--bot1":
             bot1 = arg
         if opt == "--bot2":
             bot2 = arg
-    DominoApp(hidden, bot1, bot2).run()
+        if opt == "--play_to":
+            bot2 = arg
+    DominoApp(hidden, bot1, bot2, play_to).run()
