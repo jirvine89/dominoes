@@ -151,14 +151,14 @@ class DominoGame(Widget):
         self.bot2 = getattr(algos, bot2)()
         self.game = Game([self.player1, self.player2], play_to)
         self.game.start_first_game()
-        self.update_widgets()
-        self.update_widgets()
+        self.update_widgets(self.hidden)
+        self.update_widgets(self.hidden)
         print self.bot1
         print self.bot2
 
-    def update_widgets(self):
+    def update_widgets(self, hidden):
         self.player1_hand.set_hand(self.player1.hand)
-        self.player2_hand.set_hand(self.player2.hand, hidden=self.hidden)
+        self.player2_hand.set_hand(self.player2.hand, hidden=hidden)
         self.boneyard.set_boneyard(len(self.game.board.bone_yard))
         self.board.set_board(self.game.board)
         self.scoreboard.set_scoreboard(self.player1, self.player2)
@@ -170,26 +170,25 @@ class DominoGame(Widget):
         if self.game.round_over:
             self.game.deal_tiles()
             self.game.round_over = False
-            self.update_widgets()
+            self.update_widgets(self.hidden)
             return
+
         player = self.game.current_player()
-        if move_str == '':
+        if move_str == 'Undo':
+            self.game.undo_last_move()
+        elif move_str == '':
             if player.name == "P1":
                 bot_move = self.bot1.pick_move(self.game)
             else:
                 bot_move = self.bot2.pick_move(self.game)
             self.game.make_move_or_knock(*bot_move)
-            if self.game.game_over:
-                self.update_widgets()
-                return
-            self.update_widgets()
         else:
-            if move_str == 'Undo':
-                self.game.undo_last_move()
-                self.update_widgets()
-                return
             if not is_valid_move_str(move_str):
-                self.text.ids["label"].text = "%s is not a valid move string" % move_str
+                 self.text.ids["label"].text = "%s is not a valid move string" % move_str
+                 return
+            if player.name == "P2":
+                bot_move = self.bot2.pick_move(self.game)
+                self.game.make_move_or_knock(*bot_move)
             else:
                 tile, direction = parse_move_str(move_str)
                 if tile:
@@ -201,7 +200,7 @@ class DominoGame(Widget):
                                                        % (str(tile), str(direction)))
                         return
                 self.game.make_move_or_knock(tile, direction)
-                self.update_widgets()
+        self.update_widgets(not self.game.round_over)
 
 class DominoApp(App):
     def __init__(self, hidden, bot1, bot2, play_to, **kwargs):
@@ -219,9 +218,9 @@ class DominoApp(App):
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "h", ["bot1=","bot2=","play_to="])
-    hidden = "-h" in opts
-    bot1, bot2 = "RandomBot", "RandomBot"
+    opts, args = getopt.getopt(sys.argv[1:], "s", ["bot1=","bot2=","play_to="])
+    show = ('-s', '') in opts or '-s' in opts
+    bot1, bot2 = "GreedyScoringDefensiveBot", "GreedyScoringDefensiveBot"
     play_to = 150
     for opt, arg in opts:
         if opt == "--bot1":
@@ -230,4 +229,4 @@ if __name__ == "__main__":
             bot2 = arg
         if opt == "--play_to":
             bot2 = arg
-    DominoApp(hidden, bot1, bot2, play_to).run()
+    DominoApp(not show, bot1, bot2, play_to).run()
