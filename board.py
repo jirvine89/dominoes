@@ -35,6 +35,11 @@ class Board:
       return (up_points + down_points + self.main_row[0].left_points() +
               self.main_row[-1].right_points())
 
+  def score(self):
+    if self.total_count and self.total_count % 5 == 0:
+      return self.total_count
+    return 0
+
   def _update_total_count(self):
     self.total_count = self.get_total_count()
 
@@ -165,6 +170,7 @@ class Board:
     elif direction == Dir.DOWN:
       self.add_to_bottom(tile)
     self._update_total_count()
+    return self.score()
 
   def undo_move(self, tile, direction):
     if tile is None:

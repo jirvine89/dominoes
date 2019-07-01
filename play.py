@@ -204,7 +204,7 @@ class DominoGame(Widget):
                 self.update_widgets()
 
 class DominoApp(App):
-    def __init__(self, hidden, bot1, bot2, **kwargs):
+    def __init__(self, hidden, bot1, bot2, play_to, **kwargs):
         super(DominoApp, self).__init__(**kwargs)
         self.hidden = hidden
         self.bot1 = bot1
