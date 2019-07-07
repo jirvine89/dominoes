@@ -1,6 +1,5 @@
 import random
 import math
-#from statistics import mean
 from tile import get_all_tiles
 from tile import Tile
 from game import Game
@@ -283,6 +282,9 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
 
 
 class Algo(object):
+    def __init__(self, player_name=None):
+        self.player_name = player_name
+
     def pick_move(self):
         pass
 

@@ -23,7 +23,7 @@ from kivy.vector import Vector
 # * Better move interface
 
 TILE_WIDTH = 60
-TILE_HEIGHT = 120
+TILE_HEIGHT = 2 * TILE_WIDTH
 
 class TileWidget(Widget):
     image_file = StringProperty("/Users/jirvine/dominoes/tile_images/upside_down.png")
@@ -228,5 +228,5 @@ if __name__ == "__main__":
         if opt == "--bot2":
             bot2 = arg
         if opt == "--play_to":
-            bot2 = arg
+            play_to = arg
     DominoApp(not show, bot1, bot2, play_to).run()
