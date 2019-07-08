@@ -1,14 +1,15 @@
-* Algo refactoring
-  - Rewrite GreedyDefensive in algos.py
-  - Add tests for GreedyDefensive
-  - Rewrite tournament.py, serve_value.py to work again
 * Tree search algo
-  - Tree search on state function: model drawing
-  - Go out more steps
+  - Improve quality: debug
+  - Improve speed: diagnostics, tree trimmming
+* Refactoring
+  - Create API class for algos
+  - Rewrite serve_value.py to work again
 * Add to UI:
   - Add scoreboard for multiple games
   - Show more info on game like board count
   - Show possible moves, scoring moves, suggestions from bots
+  - Drag and drop pieces
+  - Board comes from middle, bends corners
 * Reinforcement learning
   - Learn about RL from self-study course
   - Try some basic things
@@ -20,5 +21,4 @@
   - Deduce tiles they don't have from skipped scores/knocks
   - Box out with numbers you have
   - Keep open if on serve, closed if not
-  - Incorporate probabilities for opponent moves
   - Tile values, consider follow-up tiles
