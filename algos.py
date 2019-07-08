@@ -1,5 +1,7 @@
 import random
 import math
+import operator as op
+from functools import reduce
 from tile import get_all_tiles
 from tile import Tile
 from game import Game
@@ -15,6 +17,9 @@ def get_valid_moves(board, hand=None):
             if board.valid_move(tile, direction):
                 valid_moves.append((tile, direction))
     return valid_moves
+
+def get_other_tiles(board, hand):
+    return set(get_all_tiles()) - set(hand) - set(board.get_tiles_on_board())
 
 def pick_random_move(board, hand):
     valid_moves = get_valid_moves(board, hand)
@@ -61,16 +66,18 @@ def pick_defensive_move(board, hand):
             best_move = move
     return best_move
 
+def total_points_in_hand(hand):
+    return sum([tile.total_points() for tile in hand])
 
 def serve_bonus(score, play_to):
     if score < play_to - 15:
-        return score + 12
+        return 12
     if score == play_to - 15:
-        return score + 8
+        return 8
     if score == play_to - 10:
-        return score + 6
+        return 6
     if score == play_to - 5:
-        return score + 4
+        return 4
 
 def i_am_on_serve(hand_size, opp_hand_size, my_turn):
     if not my_turn:
@@ -85,7 +92,7 @@ def sign(x):
 
 def z_score(z):
     # TODO: Find actual method for this
-    return 1.0  - sigmoid(sign(z) * z ** 2)
+    return 1.0 - sigmoid(sign(z) * z ** 2)
 
 def prob_winning_from_scores(my_score, opp_score, play_to):
     # Assuming each score is the same and each player has equal
@@ -99,8 +106,19 @@ def prob_winning_from_scores(my_score, opp_score, play_to):
     Z_val = (X - N * P) / (N * P * (1-P))
     return z_score(Z_val)
 
-def get_other_tiles(board, hand):
-    return set(get_all_tiles()) - set(hand) - set(board.get_tiles_on_board())
+def game_state_value(my_score, opp_score, play_to, hand_size, opp_hand_size, my_turn):
+    # If game is over, return 1 or 0
+    if my_score >= play_to:
+        return 1.0
+    if opp_score >= play_to:
+        return 0.0
+    # Adjust scores for serve 
+    if i_am_on_serve(hand_size, opp_hand_size, my_turn):
+        my_score += serve_bonus(my_score, play_to)
+    else:
+        opp_score += serve_bonus(opp_score, play_to)
+    # Convert scores to probability of winning
+    return prob_winning_from_scores(my_score, opp_score, play_to)
 
 def board_is_boxed_out(board):
     for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
@@ -117,76 +135,96 @@ def playable_moves(board, tile):
     return playable_moves
 
 def simulate_draws(board, hand, boneyard_size):
+    # NOTE: Other methods assume draws returned in order
     other_tiles = get_other_tiles(board, hand)
     extra_tiles = []
     playable_moves_from_draw = []
     while boneyard_size and not playable_moves_from_draw:
-        draw_tile = random.sample(other_tiles, 1)
+        draw_tile = random.sample(other_tiles, 1)[0]
         extra_tiles.append(draw_tile)
         other_tiles.remove(draw_tile)
         boneyard_size -= 1
         playable_moves_from_draw = playable_moves(board, draw_tile)
     return extra_tiles
 
-def compute_prob_draw(num_valid_moves, hand_size, num_total_tiles):
-    return
-
-def compute_exp_num_draws(num_valid_moves, hand_size, num_total_tiles):
-    # Return 0 if no chance of this happening
-    return
-
-def expected_value_opp_moves(move_vals, hand_size, num_total_tiles):
-    return
-
-def expected_value_opp_draw(move_vals, prob_draw):
-    return prob_draw * mean(move_vals)
-
-def game_state_value(my_score, opp_score, play_to, hand_size, opp_hand_size, my_turn):
-    # If game is over, return 1 or 0
-    if my_score >= play_to:
-        return 1.0
-    if opp_score >= play_to:
-        return 0.0
-    # Adjust scores for serve 
-    if i_am_on_serve(hand_size, opp_hand_size, my_turn):
-        my_score = serve_bonus(my_score, play_to)
-    else:
-        opp_score = serve_bonus(opp_score, play_to)
-    # Convert scores to probability of winning
-    return prob_winning_from_scores(my_score, opp_score, play_to)
-
-def total_points_in_hand(hand):
-    return sum([tile.total_points() for tile in hand])
-
 def boxed_out_value(hand, other_tiles, opp_hand_size, my_score, opp_score, play_to):
     pts_in_hand = total_points_in_hand(hand)
     # TODO: This assumes opp is doing no pt management of hand
     pts_in_other_tiles = total_points_in_hand(other_tiles)
-    exp_pts_in_opp_hand = 1.0 * opp_hand_size / len(other_tiles)
+    exp_pts_in_opp_hand = 1.0 * pts_in_other_tiles * opp_hand_size / len(other_tiles)
     # Assumes lowest score gets to serve next
     if pts_in_hand < exp_pts_in_opp_hand:
-        my_score += (exp_pts_in_opp_hand / 5) * 5
-        my_score += serve_bonus
+        my_score += (int(exp_pts_in_opp_hand) / 5) * 5
+        my_score += serve_bonus(my_score, play_to)
     elif exp_pts_in_opp_hand < pts_in_hand:
         opp_score += (pts_in_hand / 5) * 5
-        opp_score += serve_bonus
+        opp_score += serve_bonus(opp_score, play_to)
     return prob_winning_from_scores(my_score, opp_score, play_to)
 
-def get_valid_moves_and_extra_tiles(board, hand, opp_hand_size):
+def get_valid_moves_and_extra_tiles(board, hand, opp_hand_size, sims=5):
     valid_moves = get_valid_moves(board, hand)
-    # Add empty set to each representing no extra tiles
-    valid_moves_and_extra_tiles = zip(valid_moves, [set() for i in len(valid_moves)])
-    # If no valid moves, simulate 5 random draws
-    if not valid_moves:
+    if valid_moves:
+        # Add empty set to each representing no extra tiles
+        return zip(valid_moves, [set() for i in range(len(valid_moves))])
+    else:
+        # If no valid moves, simulate 5 random draws
+        other_tiles = get_other_tiles(board, hand)
         boneyard_size = len(other_tiles) - opp_hand_size
-        for i in range(5):
+        valid_moves_and_extra_tiles = []
+        for i in range(sims):
             extra_tiles = simulate_draws(board, hand, boneyard_size)
-            valid_moves_after_draw = get_valid_moves(board, set(extra_tiles))
-            for move in valid_moves_after_draw:
-                # Assumes last tile is the valid move
-                valid_moves_and_extra_tiles.append((move, set(extra_tiles[:-1])))
-            else: # Knock
-                valid_moves_and_extra_tiles.append(((None, None), set(extra_tiles)))
+            last_tile = extra_tiles[-1]
+            valid_moves_after_draw = playable_moves(board, last_tile)
+            for move in valid_moves_after_draw or [(None, None)]:
+                valid_moves_and_extra_tiles.append((move, set(extra_tiles)))
+        return valid_moves_and_extra_tiles
+
+def ncr(n, r):
+    if n <= 0 or r < 0 or n < r: return 0
+    r = min(r, n-r)
+    numer = reduce(op.mul, range(n, n-r, -1), 1)
+    denom = reduce(op.mul, range(1, r+1), 1)
+    return numer / denom
+
+def compute_prob_draw(num_valid_tiles, hand_size, num_total_tiles):
+    # Num possible hands = Choose(num_total_tiles, hand_size)
+    # Num hands with only invalid tiles = Choose(num_invalid_tiles, hand_size)
+    num_possible_hands = ncr(num_total_tiles, hand_size)
+    num_hands_only_invalid = ncr(num_total_tiles - num_valid_tiles, hand_size)
+    return 1.0 * num_hands_only_invalid / num_possible_hands
+
+def compute_exp_num_draws_given_drawing(num_valid_moves, boneyard_size):
+    if num_valid_moves == 0:
+        return boneyard_size
+    exp = 0.0
+    num_tiles_left = boneyard_size
+    sum_prev_probs = 0.0
+    for i in range(boneyard_size - num_valid_moves + 1):
+        prob = (1. - sum_prev_probs) * (1. * num_valid_moves / num_tiles_left)
+        exp += (i+1) * prob
+        num_tiles_left -= 1
+        sum_prev_probs += prob
+    return int(round(exp))
+
+def expected_value_opp_moves(move_vals, hand_size, num_total_tiles):
+    exp = 0.0
+    sum_probs = 0.0
+    num_tiles_left = num_total_tiles
+    for val in move_vals:
+        prob_is_max = (1 - sum_probs) * (1. * hand_size / num_tiles_left)
+        exp += val * prob_is_max
+        sum_probs += prob_is_max
+        num_tiles_left -= 1
+        if num_tiles_left < hand_size:
+            break
+    return exp
+
+def mean(arr):
+    return 1. * sum(arr) / len(arr)
+
+def expected_value_opp_draw(move_vals, prob_draw):
+    return prob_draw * mean(move_vals)
+
 
 # Searches through tree of moves up to depth given, then uses
 # game_state_value
@@ -196,8 +234,9 @@ def get_valid_moves_and_extra_tiles(board, hand, opp_hand_size):
 # from drawing.
 # TODO:
 # * Fill in helper functions above
-# * Refactor into smaller chunks
 # * Test and get working
+# * Refactor into smaller chunks
+# * Change API to use game state object
 def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
     # If boxed out, score the game
     other_tiles = get_other_tiles(board, hand)
@@ -230,9 +269,10 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
 
         # See if there's a prob of draw. If so, try each move with and without exp num extra opp tiles
         opp_valid_moves = get_valid_moves(board, other_tiles)
+        # TODO: Handle case where no valid moves for opponent
         prob_draw = compute_prob_draw(len(opp_valid_moves), opp_hand_size, len(other_tiles))
-        exp_num_draws_if_drawing = compute_exp_num_draws(
-            len(opp_valid_moves), opp_hand_size, len(other_tiles))
+        exp_num_draws_if_drawing = compute_exp_num_draws_given_drawing(
+            len(opp_valid_moves), len(other_tiles) - opp_hand_size)
 
     #    # Loop through opponent's moves, keeping track of value of each
     #    opp_move_vals = []
