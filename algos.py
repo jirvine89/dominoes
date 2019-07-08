@@ -87,6 +87,8 @@ def i_am_on_serve(hand_size, opp_hand_size, my_turn):
     return hand_size <= opp_hand_size
 
 def sigmoid(x):
+    if x > 20: return 1.0
+    if x < -20: return 0.0
     return math.exp(x) / (1 + math.exp(x))
 
 def sign(x):
@@ -102,9 +104,9 @@ def prob_winning_from_scores(my_score, opp_score, play_to):
     # cumulative binomial of Bin(N*P, NP(1-P)). Approximated here
     # using a Z-value of a normal
     avg_score_per_score = 10.
-    N = (2 * play_to - my_score - opp_score) / avg_score_per_score
+    N = (2.0 * play_to - my_score - opp_score) / avg_score_per_score
     P = 0.5
-    X = (play_to - my_score) / avg_score_per_score
+    X = 1.0 * (play_to - my_score) / avg_score_per_score
     Z_val = (X - N * P) / (N * P * (1-P))
     return z_score(Z_val)
 
