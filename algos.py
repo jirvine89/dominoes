@@ -72,12 +72,14 @@ def total_points_in_hand(hand):
 def serve_bonus(score, play_to):
     if score < play_to - 15:
         return 12
-    if score == play_to - 15:
-        return 8
-    if score == play_to - 10:
-        return 6
-    if score == play_to - 5:
-        return 4
+    else:
+        return (play_to - score) / 2.0
+    #if score == play_to - 15:
+    #    return 8
+    #if score == play_to - 10:
+    #    return 6
+    #if score == play_to - 5:
+    #    return 4
 
 def i_am_on_serve(hand_size, opp_hand_size, my_turn):
     if not my_turn:
@@ -173,8 +175,10 @@ def get_valid_moves_and_extra_tiles(board, hand, opp_hand_size, sims=5):
         valid_moves_and_extra_tiles = []
         for i in range(sims):
             extra_tiles = simulate_draws(board, hand, boneyard_size)
-            last_tile = extra_tiles[-1]
-            valid_moves_after_draw = playable_moves(board, last_tile)
+            valid_moves_after_draw = []
+            if extra_tiles:
+                last_tile = extra_tiles[-1]
+                valid_moves_after_draw = playable_moves(board, last_tile)
             for move in valid_moves_after_draw or [(None, None)]:
                 valid_moves_and_extra_tiles.append((move, set(extra_tiles)))
         return valid_moves_and_extra_tiles
@@ -383,5 +387,36 @@ class GreedyScoringBot(Algo):
         return move
 
 class GreedyScoringDefensiveBot(Algo):
-  def pick_move(self, game):
-    return pick_defensive_move(game.board, game.current_player().hand)
+    def pick_move(self, game):
+        return pick_defensive_move(game.board, game.current_player().hand)
+
+def get_inputs_for_tree(game):
+    for player in game.players:
+        if player == game.current_player():
+            hand = player.hand
+            my_score = player.total_score
+        else:
+            opp_hand_size = len(player.hand)
+            opp_score = player.total_score
+    return (game.board, my_score, opp_score, game.play_to, hand, opp_hand_size)
+
+class D0TreeBot(Algo):
+    def pick_move(self, game):
+        ev_dict = tree_search(0, *get_inputs_for_tree(game))
+        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
+
+class D1TreeBot(Algo):
+    def pick_move(self, game):
+        ev_dict = tree_search(1, *get_inputs_for_tree(game))
+        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
+
+class D2TreeBot(Algo):
+    def pick_move(self, game):
+        ev_dict = tree_search(2, *get_inputs_for_tree(game))
+        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
+
+class D3TreeBot(Algo):
+    def pick_move(self, game):
+        ev_dict = tree_search(3, *get_inputs_for_tree(game))
+        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
+
