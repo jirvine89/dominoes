@@ -214,10 +214,13 @@ def compute_exp_num_draws_given_drawing(num_valid_moves, boneyard_size):
     return int(round(exp))
 
 def move_dict_to_sorted_list_by_tiles(move_vals):
-    tile_vals = defaultdict(int)
+    tile_vals = {}
     for (tile, direction), val in move_vals.items():
-        tile_vals[tile] = max(tile_vals[tile], val)
-    return sorted(tile_vals.values(), reverse=True)
+        if not tile in tile_vals.keys():
+            tile_vals[tile] = val
+        else:
+            tile_vals[tile] = min(tile_vals[tile], val)
+    return sorted(tile_vals.values())
 
 def expected_value_opp_moves(tile_vals, hand_size, num_total_tiles):
     #print 'sum_probs'
