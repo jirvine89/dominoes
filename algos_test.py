@@ -26,12 +26,12 @@ class TestAlgos(unittest.TestCase):
             self.board.make_move(tile, direction)
 
     def test_get_valid_moves_hand(self):
-        hand = [
+        hand = set([
             Tile(6, 2),
             Tile(2, 2),
             Tile(3, 1),
             Tile(0, 0)
-        ]
+        ])
         valid_moves = algos.get_valid_moves(self.board, hand)
         expected = [
             (Tile(6, 2), Dir.LEFT),
@@ -42,10 +42,10 @@ class TestAlgos(unittest.TestCase):
         self.assertEqual(set(valid_moves), set(expected))
 
     def test_random_move(self):
-        hand = [
+        hand = set([
             Tile(6, 2),
             Tile(2, 2),
-        ]
+        ])
         random_moves = [algos.pick_random_move(self.board, hand) for i in range(100)]
         valid_moves = [
             (Tile(6, 2), Dir.LEFT),
@@ -57,11 +57,11 @@ class TestAlgos(unittest.TestCase):
         self.assertTrue(set(counts.keys()) == set(valid_moves))
 
     def test_greedy_move(self):
-        hand = [
+        hand = set([
             Tile(3, 4), # Scores 10 Right
             Tile(0, 3), # Scores 15 Up
             Tile(6, 1), # Doesn't score
-        ]
+        ])
         greedy_move, greedy_score = algos.pick_greedy_move(self.board, hand)
         self.assertEquals(greedy_move, (Tile(0,3), Dir.UP))
 
@@ -393,6 +393,33 @@ class TestAlgos(unittest.TestCase):
     def test_expected_value_opp_draw(self):
         move_vals = [0.7, 0.5]
         self.assertEqual(algos.expected_value_opp_draw(move_vals, 0.2), 0.6 * 0.2)
+
+    def test_tree_search_zero_depth(self):
+        hand = set([
+            Tile(3, 4), # Scores 10 Right
+            Tile(0, 3), # Scores 15 Up
+            Tile(6, 1), # Doesn't score
+        ])
+        ev_dict = algos.tree_search(0, self.board, 0, 0, 150, hand, 4)
+        print
+        for k, v in ev_dict.items():
+            print k, v
+        ev_dict = algos.tree_search(1, self.board, 0, 0, 150, hand, 4)
+        print
+        for k, v in ev_dict.items():
+            print k, v
+        ev_dict = algos.tree_search(2, self.board, 0, 0, 150, hand, 4)
+        print
+        for k, v in ev_dict.items():
+            print k, v
+        ev_dict = algos.tree_search(3, self.board, 0, 0, 150, hand, 4)
+        print
+        for k, v in ev_dict.items():
+            print k, v
+        ev_dict = algos.tree_search(4, self.board, 0, 0, 150, hand, 4)
+        print
+        for k, v in ev_dict.items():
+            print k, v
 
 
 if __name__ == '__main__':
