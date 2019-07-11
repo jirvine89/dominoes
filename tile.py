@@ -18,7 +18,7 @@ class Tile:
     small_word = num_to_word_map[self.small_side]
     big_word = num_to_word_map[self.big_side]
     file_name = "%s_%s.png" % (small_word, big_word)
-    return "/Users/jirvine/dominoes/tile_images/" + file_name
+    return "./tile_images/" + file_name
 
   def is_double(self):
     return self.small_side == self.big_side

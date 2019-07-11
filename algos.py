@@ -103,6 +103,10 @@ def prob_winning_from_scores(my_score, opp_score, play_to):
     # likelihood of scoring, the probability of winning is a 
     # cumulative binomial of Bin(N*P, NP(1-P)). Approximated here
     # using a Z-value of a normal
+    if my_score >= play_to:
+        return 1.0
+    elif opp_score >= play_to:
+        return 0.0
     avg_score_per_score = 10.
     N = (2.0 * play_to - my_score - opp_score) / avg_score_per_score
     P = 0.5
@@ -406,21 +410,29 @@ def get_inputs_for_tree(game):
     return (game.board, my_score, opp_score, game.play_to, hand, opp_hand_size)
 
 class D0TreeBot(Algo):
+    # vs GreedyBot: 47% of 1k
+    # ~1 min for 1k games
     def pick_move(self, game):
         ev_dict = tree_search(0, *get_inputs_for_tree(game))
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D1TreeBot(Algo):
+    # vs GreedyDefensiveBot: 56% of 1k
+    # ~5 mins for 1k games
     def pick_move(self, game):
         ev_dict = tree_search(1, *get_inputs_for_tree(game))
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D2TreeBot(Algo):
+    # vs GreedyDefensiveBot: 59% of 100
+    # ~3 mins for 100 games
     def pick_move(self, game):
         ev_dict = tree_search(2, *get_inputs_for_tree(game))
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D3TreeBot(Algo):
+    # vs GreedyDefensiveBot: 8/10
+    # 15 seconds per game, 3 mins for 10
     def pick_move(self, game):
         ev_dict = tree_search(3, *get_inputs_for_tree(game))
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]

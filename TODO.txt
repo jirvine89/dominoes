@@ -1,9 +1,7 @@
 * Tree search algo
+  - Add tree visualization
   - Improve quality: debug
   - Improve speed: diagnostics, tree trimmming
-* Refactoring
-  - Create API class for algos
-  - Rewrite serve_value.py to work again
 * Add to UI:
   - Add scoreboard for multiple games
   - Show more info on game like board count
@@ -11,9 +9,15 @@
   - Drag and drop pieces
   - Board comes from middle, bends corners
 * Reinforcement learning
-  - Learn about RL from self-study course
-  - Try some basic things
+  - RL self-study course
+  - Build MCST
+  - Encode state and moves as inputs for net
+  - Set up deep net training: TF, cloud resources?
   - If necessary, speed up the core
+* Refactoring
+  - Create API class for algos
+  - Rewrite serve_value.py to work again
+  - Create algos_util.py
 * More tests
   - Unit tests for Board and Game
   - Integration tests for internal state (history)

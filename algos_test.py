@@ -129,10 +129,10 @@ class TestAlgos(unittest.TestCase):
 
     def test_serve_bonus(self):
         return
-        #self.assertEquals(100 + algos.serve_bonus(100, 150), 112)
-        #self.assertEquals(135 + algos.serve_bonus(135, 150), 143)
-        #self.assertEquals(140 + algos.serve_bonus(140, 150), 146)
-        #self.assertEquals(145 + algos.serve_bonus(145, 150), 149)
+        self.assertEquals(100 + algos.serve_bonus(100, 150), 112)
+        self.assertEquals(135 + algos.serve_bonus(135, 150), 142.5)
+        self.assertEquals(140 + algos.serve_bonus(140, 150), 145)
+        self.assertEquals(145 + algos.serve_bonus(145, 150), 147.5)
 
     def test_i_am_on_serve(self):
         self.assertTrue(algos.i_am_on_serve(5, 5, True))
