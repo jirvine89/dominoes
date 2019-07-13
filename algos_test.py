@@ -1,7 +1,7 @@
 import unittest
 import algos
 from board import Board
-from tile import Tile
+from tile import Tile, get_all_tiles
 from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
 
@@ -109,23 +109,29 @@ class TestAlgos(unittest.TestCase):
        self.assertTrue(algos.prob_winning_from_scores(112, 115, 150) < 0.5)
 
     def test_game_state_value(self):
-        value = algos.game_state_value(150, 110, 150, 3, 3, True)
+        def build_gs(my_score, opp_score, play_to, hand_size, opp_hand_size, my_turn):
+            board = Board()
+            hand = set([Tile((i / 7),i % 7) for i in range(hand_size)])
+            return algos.GameState(board, my_score, opp_score, play_to,
+                                   hand, opp_hand_size, my_turn)
+
+        value = algos.game_state_value(build_gs(150, 110, 150, 3, 3, True))
         self.assertEquals(value, 1.0)
-        value = algos.game_state_value(100, 155, 150, 3, 3, True)
+        value = algos.game_state_value(build_gs(100, 155, 150, 3, 3, True))
         self.assertEquals(value, 0.0)
-        value = algos.game_state_value(100, 110, 150, 3, 3, True)
-        self.assertTrue(value > 0.5)
-        value = algos.game_state_value(100, 110, 150, 3, 2, True)
-        self.assertTrue(value < 0.5)
-        value = algos.game_state_value(100, 110, 150, 3, 3, False)
-        self.assertTrue(value < 0.5)
-        value = algos.game_state_value(100, 115, 150, 3, 3, True)
-        self.assertTrue(value < 0.5)
-        value1 = algos.game_state_value(100, 100, 150, 3, 3, True)
-        value2 = algos.game_state_value(100, 100, 150, 3, 3, False)
+        value = algos.game_state_value(build_gs(100, 110, 150, 3, 3, True))
+        self.assertGreater(value, 0.5)
+        value = algos.game_state_value(build_gs(100, 110, 150, 3, 2, True))
+        self.assertLess(value, 0.5)
+        value = algos.game_state_value(build_gs(100, 110, 150, 3, 3, False))
+        self.assertLess(value, 0.5)
+        value = algos.game_state_value(build_gs(100, 115, 150, 3, 3, True))
+        self.assertLess(value, 0.5)
+        value1 = algos.game_state_value(build_gs(100, 100, 150, 3, 3, True))
+        value2 = algos.game_state_value(build_gs(100, 100, 150, 3, 3, False))
         self.assertAlmostEquals(value1, 1.0 - value2)
-        value = algos.game_state_value(145, 115, 150, 1, 3, True)
-        self.assertTrue(value < 1.0)
+        value = algos.game_state_value(build_gs(145, 115, 150, 1, 3, True))
+        self.assertLess(value, 1.0)
 
     def test_serve_bonus(self):
         return
@@ -262,19 +268,26 @@ class TestAlgos(unittest.TestCase):
 
 
     def test_boxed_out_value(self):
+        def build_gs(hand, other_tiles, opp_hand_size, my_score, opp_score, play_to):
+            board = Board()
+            for tile in get_all_tiles():
+                if tile not in hand and tile not in other_tiles:
+                    board.add_to_right(tile)
+            return algos.GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
+
         # They win
         hand = set([Tile(3,3), Tile(4,4)])
         other_tiles = set([Tile(1,1), Tile(0,0), Tile(6,6), Tile(5,5)])
         opp_hand_size = 2
-        val = algos.boxed_out_value(hand, other_tiles, opp_hand_size, 0, 0, 150)
+        val = algos.boxed_out_value(build_gs(hand, other_tiles, opp_hand_size, 0, 0, 150))
         self.assertEquals(val, algos.prob_winning_from_scores(0, 22, 150))
         # We win
         hand = set([Tile(2,1), Tile(4,4)])
-        val = algos.boxed_out_value(hand, other_tiles, opp_hand_size, 0, 0, 150)
+        val = algos.boxed_out_value(build_gs(hand, other_tiles, opp_hand_size, 0, 0, 150))
         self.assertEquals(val, algos.prob_winning_from_scores(22, 0, 150))
         # Tie
         hand = set([Tile(2,2), Tile(4,4)])
-        val = algos.boxed_out_value(hand, other_tiles, opp_hand_size, 0, 0, 150)
+        val = algos.boxed_out_value(build_gs(hand, other_tiles, opp_hand_size, 0, 0, 150))
         self.assertEquals(val, 0.5)
 
     def test_get_valid_moves_and_extra_tiles_when_valid_moves(self):
@@ -401,27 +414,26 @@ class TestAlgos(unittest.TestCase):
             Tile(0, 3), # Scores 15 Up
             Tile(6, 1), # Doesn't score
         ])
-        ev_dict = algos.tree_search(0, self.board, 0, 0, 150, hand, 4)
+        gs = algos.GameState(self.board, 0, 0, 150, hand, 4)
+        ev_dict = algos.tree_search(0, gs)
         print
         for k, v in ev_dict.items():
             print k, v
-        ev_dict = algos.tree_search(1, self.board, 0, 0, 150, hand, 4)
+        ev_dict = algos.tree_search(1, gs)
         print
         for k, v in ev_dict.items():
             print k, v
-        ev_dict = algos.tree_search(2, self.board, 0, 0, 150, hand, 4)
+        ev_dict = algos.tree_search(1, gs)
         print
         for k, v in ev_dict.items():
             print k, v
-        ev_dict = algos.tree_search(3, self.board, 0, 0, 150, hand, 4)
+        ev_dict = algos.tree_search(1, gs)
         print
         for k, v in ev_dict.items():
             print k, v
-        #ev_dict = algos.tree_search(4, self.board, 0, 0, 150, hand, 4)
-        #print
-        #for k, v in ev_dict.items():
-        #    print k, v
 
+# TODO: Add tests for Algo classes, not just functions
+# TODO: Add tests for tree_search
 
 if __name__ == '__main__':
     unittest.main()

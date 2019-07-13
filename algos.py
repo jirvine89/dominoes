@@ -1,5 +1,6 @@
 import random
 import math
+import copy
 import operator as op
 from functools import reduce
 from tile import get_all_tiles
@@ -74,12 +75,6 @@ def serve_bonus(score, play_to):
         return 12
     else:
         return (play_to - score) / 2.0
-    #if score == play_to - 15:
-    #    return 8
-    #if score == play_to - 10:
-    #    return 6
-    #if score == play_to - 5:
-    #    return 4
 
 def i_am_on_serve(hand_size, opp_hand_size, my_turn):
     if not my_turn:
@@ -114,19 +109,21 @@ def prob_winning_from_scores(my_score, opp_score, play_to):
     Z_val = (X - N * P) / (N * P * (1-P))
     return z_score(Z_val)
 
-def game_state_value(my_score, opp_score, play_to, hand_size, opp_hand_size, my_turn):
+def game_state_value(gs):
     # If game is over, return 1 or 0
-    if my_score >= play_to:
+    my_score = gs.my_score
+    opp_score = gs.opp_score
+    if my_score >= gs.play_to:
         return 1.0
-    if opp_score >= play_to:
+    if opp_score >= gs.play_to:
         return 0.0
     # Adjust scores for serve 
-    if i_am_on_serve(hand_size, opp_hand_size, my_turn):
-        my_score += serve_bonus(my_score, play_to)
+    if i_am_on_serve(len(gs.hand), gs.opp_hand_size, gs.my_turn):
+        my_score += serve_bonus(gs.my_score, gs.play_to)
     else:
-        opp_score += serve_bonus(opp_score, play_to)
+        opp_score += serve_bonus(gs.opp_score, gs.play_to)
     # Convert scores to probability of winning
-    return prob_winning_from_scores(my_score, opp_score, play_to)
+    return prob_winning_from_scores(my_score, opp_score, gs.play_to)
 
 def board_is_boxed_out(board):
     for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
@@ -143,7 +140,7 @@ def playable_moves(board, tile):
     return playable_moves
 
 def simulate_draws(board, hand, boneyard_size):
-    # NOTE: Other methods assume draws returned in order
+    # Returns tiles IN ORDER of draws
     other_tiles = get_other_tiles(board, hand)
     extra_tiles = []
     playable_moves_from_draw = []
@@ -155,19 +152,22 @@ def simulate_draws(board, hand, boneyard_size):
         playable_moves_from_draw = playable_moves(board, draw_tile)
     return extra_tiles
 
-def boxed_out_value(hand, other_tiles, opp_hand_size, my_score, opp_score, play_to):
-    pts_in_hand = total_points_in_hand(hand)
-    # TODO: This assumes opp is doing no pt management of hand
+# TODO: This assumes opp is doing no pt management of hand
+def boxed_out_value(gs):
+    other_tiles = get_other_tiles(gs.board, gs.hand)
+    pts_in_hand = total_points_in_hand(gs.hand)
     pts_in_other_tiles = total_points_in_hand(other_tiles)
-    exp_pts_in_opp_hand = 1.0 * pts_in_other_tiles * opp_hand_size / len(other_tiles)
+    exp_pts_in_opp_hand = 1.0 * pts_in_other_tiles * gs.opp_hand_size / len(other_tiles)
     # Assumes lowest score gets to serve next
+    my_score = gs.my_score
+    opp_score = gs.opp_score
     if pts_in_hand < exp_pts_in_opp_hand:
         my_score += (int(exp_pts_in_opp_hand) / 5) * 5
-        my_score += serve_bonus(my_score, play_to)
+        my_score += serve_bonus(my_score, gs.play_to)
     elif exp_pts_in_opp_hand < pts_in_hand:
         opp_score += (pts_in_hand / 5) * 5
-        opp_score += serve_bonus(opp_score, play_to)
-    return prob_winning_from_scores(my_score, opp_score, play_to)
+        opp_score += serve_bonus(opp_score, gs.play_to)
+    return prob_winning_from_scores(my_score, opp_score, gs.play_to)
 
 def get_valid_moves_and_extra_tiles(board, hand, opp_hand_size, sims=5):
     valid_moves = get_valid_moves(board, hand)
@@ -229,7 +229,6 @@ def move_dict_to_sorted_list_by_tiles(move_vals):
     return sorted(tile_vals.values())
 
 def expected_value_opp_moves(tile_vals, hand_size, num_total_tiles):
-    #print 'sum_probs'
     exp = 0.0
     sum_probs = 0.0
     num_tiles_left = num_total_tiles
@@ -237,11 +236,9 @@ def expected_value_opp_moves(tile_vals, hand_size, num_total_tiles):
         prob_is_max = (1 - sum_probs) * (1. * hand_size / num_tiles_left)
         exp += val * prob_is_max
         sum_probs += prob_is_max
-    #    print sum_probs
         num_tiles_left -= 1
         if num_tiles_left < hand_size:
             break
-    #print
     return exp
 
 def mean(arr):
@@ -251,6 +248,9 @@ def mean(arr):
 def expected_value_opp_draw(tile_vals, prob_draw):
     return prob_draw * mean(tile_vals)
 
+def tree_inputs_from_game_state(gs):
+    return (gs.board, gs.my_score, gs.opp_score, gs.play_to,
+            gs.hand, gs.opp_hand_size, gs.my_turn)
 
 # Searches through tree of moves up to depth given, then uses
 # game_state_value
@@ -259,22 +259,20 @@ def expected_value_opp_draw(tile_vals, prob_draw):
 # If no valid moves, returns dict from (None, None) to EV
 # from drawing.
 # TODO:
-# * Test and get working
+# * Add E2E tests for this function
 # * Refactor into smaller chunks, to fit in 50 lines
-# * Change API to use game state object
-# * Fix todos in helper functions
-def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
+def tree_search(depth, game_state):
+    board = game_state.board
+    hand = game_state.hand
+
     # If boxed out, score the game
     other_tiles = get_other_tiles(board, hand)
     if board_is_boxed_out(board):
-        return {
-            (None, None):
-            boxed_out_value(hand, other_tiles, opp_hand_size, score, opp_score, play_to)
-        }
+        return {(None, None): boxed_out_value(game_state)}
 
     # Get valid moves, along with extra tiles form simulation
     valid_moves_and_extra_tiles = get_valid_moves_and_extra_tiles(
-        board, hand, opp_hand_size)
+        board, hand, game_state.opp_hand_size)
 
     # Initialize EV_dict and loop through each valid move for keys
     EV_dict = {}
@@ -284,26 +282,26 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
             used_simulations = True
         tile, direction = move
         # Incorporate extra tiles if had to draw before
-        hand = hand.union(extra_tiles)
+        hand.update(extra_tiles)
         other_tiles -= extra_tiles
         # Make move, update scoreboard
         if tile:
             move_score = board.make_move(tile, direction)
-            score += move_score
+            game_state.my_score += move_score
             hand.remove(tile)
 
         # If game over, round over, boxed out OR depth == 0, use game value
-        if depth == 0 or len(hand) == 0 or score >= play_to:
-            EV_dict[move] = game_state_value(score, opp_score, play_to, len(hand), opp_hand_size, False)
+        if depth == 0 or len(hand) == 0 or game_state.my_score >= game_state.play_to:
+            EV_dict[move] = game_state_value(game_state)
         elif board_is_boxed_out(board):
-            EV_dict[move] = boxed_out_value(hand, other_tiles, opp_hand_size, score, opp_score, play_to)
+            EV_dict[move] = boxed_out_value(game_state)
         else:
             # See if there's a prob of draw. If so, try each move with and without exp num extra opp tiles
             opp_valid_moves = get_valid_moves(board, other_tiles)
             num_opp_valid_tiles = len(set([m[0] for m in opp_valid_moves]))
-            prob_draw = compute_prob_draw(num_opp_valid_tiles, opp_hand_size, len(other_tiles))
+            prob_draw = compute_prob_draw(num_opp_valid_tiles, game_state.opp_hand_size, len(other_tiles))
             exp_num_draws_if_drawing = compute_exp_num_draws_given_drawing(
-                num_opp_valid_tiles, len(other_tiles) - opp_hand_size)
+                num_opp_valid_tiles, len(other_tiles) - game_state.opp_hand_size)
 
             # Loop through opponent's moves, keeping track of value of each
             opp_move_vals = {}
@@ -315,33 +313,30 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
                 if opp_tile:
                     # Make move, update
                     opp_move_score = board.make_move(opp_tile, opp_direction)
-                    opp_score += opp_move_score
-                    opp_hand_size -= 1
+                    game_state.opp_score += opp_move_score
+                    game_state.opp_hand_size -= 1
                 # Score move
                 # TODO: Handle case when board is boxed out?
-                if opp_hand_size == 0 or depth == 0:
-                    val = game_state_value(
-                        score, opp_score, play_to, len(hand), opp_hand_size, True)
+                if game_state.opp_hand_size == 0 or depth == 0:
+                    val = game_state_value(game_state)
                     opp_move_vals[opp_move] = val
                     #if prob_draw:
-                    val_draw = game_state_value(
-                        score, opp_score, play_to, len(hand),
-                        opp_hand_size + exp_num_draws_if_drawing, True)
+                    game_state.opp_hand_size += exp_num_draws_if_drawing
+                    val_draw = game_state_value(game_state)
+                    game_state.opp_hand_size -= exp_num_draws_if_drawing
                     opp_move_vals_draw[opp_move] = val_draw
                 else:
-                    tree_results = tree_search(
-                        depth - 1, board, score, opp_score,
-                        play_to, hand, opp_hand_size)
+                    tree_results = tree_search(depth - 1, game_state)
                     opp_move_vals[opp_move] = max(tree_results.values())
                     #if prob_draw:
-                    tree_results_draw = tree_search(
-                        depth - 1, board, score, opp_score, play_to,
-                        hand, opp_hand_size + exp_num_draws_if_drawing)
+                    game_state.opp_hand_size += exp_num_draws_if_drawing
+                    tree_results_draw = tree_search(depth - 1, game_state)
+                    game_state.opp_hand_size -= exp_num_draws_if_drawing
                     opp_move_vals_draw[opp_move] = max(tree_results_draw.values())
                 # Undo opp move to board, scoreboard, hands, boneyard
                 if opp_tile:
-                    opp_hand_size += 1
-                    opp_score -= opp_move_score
+                    game_state.opp_hand_size += 1
+                    game_state.opp_score -= opp_move_score
                     board.undo_move(opp_tile, opp_direction)
                 depth += 1
 
@@ -350,26 +345,18 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
             # EV_dict[my_move] = dot product of values and probs
             opp_tile_vals = move_dict_to_sorted_list_by_tiles(opp_move_vals)
             opp_tile_vals_draw = move_dict_to_sorted_list_by_tiles(opp_move_vals_draw)
-            ev = expected_value_opp_moves(opp_tile_vals, opp_hand_size, len(other_tiles))
-            #print prob_draw
-            #print exp_num_draws_if_drawing
-            #print
-            #print opp_tile_vals
-            #print opp_tile_vals_draw
-            #print ev
+            ev = expected_value_opp_moves(opp_tile_vals, game_state.opp_hand_size, len(other_tiles))
             draw_val = expected_value_opp_draw(opp_tile_vals_draw, prob_draw)
-            #print draw_val
             ev += draw_val
-            #print ev
             EV_dict[move] = ev
 
         # Undo move to board, scoreboard, hand, extra tiles
         if tile:
             board.undo_move(tile, direction)
             hand.add(tile)
-            score -= move_score
+            game_state.my_score -= move_score
         hand -= extra_tiles
-        other_tiles = other_tiles.union(extra_tiles)
+        other_tiles.update(extra_tiles)
 
     # If my moves were sims of draws, return the average of all of them
     if used_simulations:
@@ -377,6 +364,29 @@ def tree_search(depth, board, score, opp_score, play_to, hand, opp_hand_size):
     else:
         return EV_dict
 
+def game_state_from_game(game):
+    board = copy.deepcopy(game.board)
+    # Assumes 2P
+    for player in game.players:
+        if player == game.current_player():
+            hand = copy.deepcopy(player.hand)
+            my_score = player.total_score
+        else:
+            opp_hand_size = len(player.hand)
+            opp_score = player.total_score
+    play_to = game.play_to
+    return GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
+
+# Move these classes to their own files
+class GameState(object):
+    def __init__(self, board, my_score, opp_score, play_to, hand, opp_hand_size, my_turn=True):
+        self.board = board
+        self.my_score = my_score
+        self.opp_score = opp_score
+        self.play_to = play_to
+        self.hand = hand
+        self.opp_hand_size = opp_hand_size
+        self.my_turn = my_turn
 
 class Algo(object):
     def __init__(self, player_name=None):
@@ -387,53 +397,50 @@ class Algo(object):
 
 class RandomBot(Algo):
     def pick_move(self, game):
-        return pick_random_move(game.board, game.current_player().hand)
+        game_state = game_state_from_game(game)
+        return pick_random_move(game_state.board, game_state.hand)
 
 
 class GreedyScoringBot(Algo):
     def pick_move(self, game):
-        move, score = pick_greedy_move(game.board, game.current_player().hand)
+        game_state = game_state_from_game(game)
+        move, score = pick_greedy_move(game_state.board, game_state.hand)
         return move
 
 class GreedyScoringDefensiveBot(Algo):
     def pick_move(self, game):
-        return pick_defensive_move(game.board, game.current_player().hand)
-
-def get_inputs_for_tree(game):
-    for player in game.players:
-        if player == game.current_player():
-            hand = player.hand
-            my_score = player.total_score
-        else:
-            opp_hand_size = len(player.hand)
-            opp_score = player.total_score
-    return (game.board, my_score, opp_score, game.play_to, hand, opp_hand_size)
+        game_state = game_state_from_game(game)
+        return pick_defensive_move(game_state.board, game_state.hand)
 
 class D0TreeBot(Algo):
-    # vs GreedyBot: 47% of 1k
+    # vs GreedyScoringBot: 50% of 1k
     # ~1 min for 1k games
     def pick_move(self, game):
-        ev_dict = tree_search(0, *get_inputs_for_tree(game))
+        game_state = game_state_from_game(game)
+        ev_dict = tree_search(0, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D1TreeBot(Algo):
     # vs GreedyDefensiveBot: 56% of 1k
     # ~5 mins for 1k games
     def pick_move(self, game):
-        ev_dict = tree_search(1, *get_inputs_for_tree(game))
+        game_state = game_state_from_game(game)
+        ev_dict = tree_search(1, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D2TreeBot(Algo):
     # vs GreedyDefensiveBot: 59% of 100
     # ~3 mins for 100 games
     def pick_move(self, game):
-        ev_dict = tree_search(2, *get_inputs_for_tree(game))
+        game_state = game_state_from_game(game)
+        ev_dict = tree_search(2, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D3TreeBot(Algo):
     # vs GreedyDefensiveBot: 8/10
     # 15 seconds per game, 3 mins for 10
     def pick_move(self, game):
-        ev_dict = tree_search(3, *get_inputs_for_tree(game))
+        game_state = game_state_from_game(game)
+        ev_dict = tree_search(3, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
