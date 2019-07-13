@@ -1,5 +1,7 @@
 import random
+import copy
 from tile import Tile, get_all_tiles, MAX_SIDE_VALUE
+from game_state import GameState
 from board import Board
 from dominoes_util import Dir, Orientation
 
@@ -33,6 +35,19 @@ class Game:
     for i, player in enumerate(self.players):
         if player.name == name:
             return player, i
+
+  def create_game_state(self):
+    board = copy.deepcopy(self.board)
+    # Assumes 2P
+    for player in self.players:
+        if player == self.current_player():
+            hand = copy.deepcopy(player.hand)
+            my_score = player.total_score
+        else:
+            opp_hand_size = len(player.hand)
+            opp_score = player.total_score
+    play_to = self.play_to
+    return GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
 
   def undo_last_move(self):
     if not self.history:

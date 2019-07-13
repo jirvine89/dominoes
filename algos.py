@@ -1,11 +1,10 @@
 import random
 import math
-import copy
 import operator as op
 from functools import reduce
 from tile import get_all_tiles
 from tile import Tile
-from game import Game
+from game_state import GameState
 from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
 
@@ -364,83 +363,53 @@ def tree_search(depth, game_state):
     else:
         return EV_dict
 
-def game_state_from_game(game):
-    board = copy.deepcopy(game.board)
-    # Assumes 2P
-    for player in game.players:
-        if player == game.current_player():
-            hand = copy.deepcopy(player.hand)
-            my_score = player.total_score
-        else:
-            opp_hand_size = len(player.hand)
-            opp_score = player.total_score
-    play_to = game.play_to
-    return GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
-
-# Move these classes to their own files
-class GameState(object):
-    def __init__(self, board, my_score, opp_score, play_to, hand, opp_hand_size, my_turn=True):
-        self.board = board
-        self.my_score = my_score
-        self.opp_score = opp_score
-        self.play_to = play_to
-        self.hand = hand
-        self.opp_hand_size = opp_hand_size
-        self.my_turn = my_turn
 
 class Algo(object):
     def __init__(self, player_name=None):
         self.player_name = player_name
 
-    def pick_move(self):
+    def pick_move(self, game_state):
         pass
 
 class RandomBot(Algo):
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         return pick_random_move(game_state.board, game_state.hand)
 
 
 class GreedyScoringBot(Algo):
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         move, score = pick_greedy_move(game_state.board, game_state.hand)
         return move
 
 class GreedyScoringDefensiveBot(Algo):
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         return pick_defensive_move(game_state.board, game_state.hand)
 
 class D0TreeBot(Algo):
     # vs GreedyScoringBot: 50% of 1k
     # ~1 min for 1k games
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         ev_dict = tree_search(0, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D1TreeBot(Algo):
     # vs GreedyDefensiveBot: 56% of 1k
     # ~5 mins for 1k games
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         ev_dict = tree_search(1, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D2TreeBot(Algo):
     # vs GreedyDefensiveBot: 59% of 100
     # ~3 mins for 100 games
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         ev_dict = tree_search(2, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D3TreeBot(Algo):
     # vs GreedyDefensiveBot: 8/10
     # 15 seconds per game, 3 mins for 10
-    def pick_move(self, game):
-        game_state = game_state_from_game(game)
+    def pick_move(self, game_state):
         ev_dict = tree_search(3, game_state)
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 

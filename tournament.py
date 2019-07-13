@@ -15,10 +15,11 @@ def play_game(game, bot1, bot2):
             game.round_over = False
         # Get move from bot
         player = game.current_player()
+        game_state = game.create_game_state()
         if player.name == bot1.player_name:
-            bot_move = bot1.pick_move(game)
+            bot_move = bot1.pick_move(game_state)
         elif player.name == bot2.player_name:
-            bot_move = bot2.pick_move(game)
+            bot_move = bot2.pick_move(game_state)
         else:
             print 'ERROR: no bot with player name %s' % player.name
             assert False

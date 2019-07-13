@@ -178,16 +178,16 @@ class DominoGame(Widget):
             self.game.undo_last_move()
         elif move_str == '':
             if player.name == "P1":
-                bot_move = self.bot1.pick_move(self.game)
+                bot_move = self.bot1.pick_move(self.game.create_game_state())
             else:
-                bot_move = self.bot2.pick_move(self.game)
+                bot_move = self.bot2.pick_move(self.game.create_game_state())
             self.game.make_move_or_knock(*bot_move)
         else:
             if not is_valid_move_str(move_str):
                  self.text.ids["label"].text = "%s is not a valid move string" % move_str
                  return
             if player.name == "P2":
-                bot_move = self.bot2.pick_move(self.game)
+                bot_move = self.bot2.pick_move(self.game.create_game_state())
                 self.game.make_move_or_knock(*bot_move)
             else:
                 tile, direction = parse_move_str(move_str)

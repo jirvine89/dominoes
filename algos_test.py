@@ -1,6 +1,7 @@
 import unittest
 import algos
 from board import Board
+from game_state import GameState
 from tile import Tile, get_all_tiles
 from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
@@ -112,8 +113,8 @@ class TestAlgos(unittest.TestCase):
         def build_gs(my_score, opp_score, play_to, hand_size, opp_hand_size, my_turn):
             board = Board()
             hand = set([Tile((i / 7),i % 7) for i in range(hand_size)])
-            return algos.GameState(board, my_score, opp_score, play_to,
-                                   hand, opp_hand_size, my_turn)
+            return GameState(board, my_score, opp_score, play_to,
+                             hand, opp_hand_size, my_turn)
 
         value = algos.game_state_value(build_gs(150, 110, 150, 3, 3, True))
         self.assertEquals(value, 1.0)
@@ -273,7 +274,7 @@ class TestAlgos(unittest.TestCase):
             for tile in get_all_tiles():
                 if tile not in hand and tile not in other_tiles:
                     board.add_to_right(tile)
-            return algos.GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
+            return GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
 
         # They win
         hand = set([Tile(3,3), Tile(4,4)])
@@ -414,7 +415,7 @@ class TestAlgos(unittest.TestCase):
             Tile(0, 3), # Scores 15 Up
             Tile(6, 1), # Doesn't score
         ])
-        gs = algos.GameState(self.board, 0, 0, 150, hand, 4)
+        gs = GameState(self.board, 0, 0, 150, hand, 4)
         ev_dict = algos.tree_search(0, gs)
         print
         for k, v in ev_dict.items():

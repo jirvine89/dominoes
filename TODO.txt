@@ -15,7 +15,6 @@
   - Set up deep net training: TF, cloud resources?
   - If necessary, speed up the core
 * Refactoring
-  - Move GameState out of algos and make input to bots
   - Rewrite serve_value.py to work again
   - Create algos_util.py
 * More tests
