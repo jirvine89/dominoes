@@ -1,5 +1,5 @@
 import sys, getopt
-import algos
+import bots
 from player import Player, is_valid_move_str, parse_move_str
 from game import Game
 from dominoes_util import Orientation
@@ -147,8 +147,8 @@ class DominoGame(Widget):
         self.hidden = hidden
         self.player1 = Player("P1")
         self.player2 = Player("P2")
-        self.bot1 = getattr(algos, bot1)()
-        self.bot2 = getattr(algos, bot2)()
+        self.bot1 = getattr(bots, bot1)()
+        self.bot2 = getattr(bots, bot2)()
         self.game = Game([self.player1, self.player2], play_to)
         self.game.start_first_game()
         self.update_widgets(self.hidden)
@@ -220,7 +220,7 @@ class DominoApp(App):
 if __name__ == "__main__":
     opts, args = getopt.getopt(sys.argv[1:], "s", ["bot1=","bot2=","play_to="])
     show = ('-s', '') in opts or '-s' in opts
-    bot1, bot2 = "GreedyScoringDefensiveBot", "GreedyScoringDefensiveBot"
+    bot1, bot2 = "GreedyDefensiveBot", "GreedyDefensiveBot"
     play_to = 150
     for opt, arg in opts:
         if opt == "--bot1":

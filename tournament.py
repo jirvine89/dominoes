@@ -1,5 +1,5 @@
 import sys, getopt
-import algos
+import bots
 from player import Player
 from game import Game
 
@@ -49,8 +49,8 @@ def main(argv):
     player1_name, player2_name = bot1_name, bot2_name
     if bot1_name == bot2_name:
         player1_name, player2_name = bot1_name + '1', bot2_name + '2'
-    bot1 = getattr(algos, bot1_name)(player1_name)
-    bot2 = getattr(algos, bot2_name)(player2_name)
+    bot1 = getattr(bots, bot1_name)(player1_name)
+    bot2 = getattr(bots, bot2_name)(player2_name)
     print bot1, bot2
 
     # Play

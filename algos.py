@@ -258,9 +258,10 @@ def tree_inputs_from_game_state(gs):
 # If no valid moves, returns dict from (None, None) to EV
 # from drawing.
 # TODO:
+# * Add tree
 # * Add E2E tests for this function
 # * Refactor into smaller chunks, to fit in 50 lines
-def tree_search(depth, game_state):
+def tree_search(depth, game_state, tree_node=None):
     board = game_state.board
     hand = game_state.hand
 
@@ -362,54 +363,4 @@ def tree_search(depth, game_state):
         return {(None, None): mean(EV_dict.values())}
     else:
         return EV_dict
-
-
-class Algo(object):
-    def __init__(self, player_name=None):
-        self.player_name = player_name
-
-    def pick_move(self, game_state):
-        pass
-
-class RandomBot(Algo):
-    def pick_move(self, game_state):
-        return pick_random_move(game_state.board, game_state.hand)
-
-
-class GreedyScoringBot(Algo):
-    def pick_move(self, game_state):
-        move, score = pick_greedy_move(game_state.board, game_state.hand)
-        return move
-
-class GreedyScoringDefensiveBot(Algo):
-    def pick_move(self, game_state):
-        return pick_defensive_move(game_state.board, game_state.hand)
-
-class D0TreeBot(Algo):
-    # vs GreedyScoringBot: 50% of 1k
-    # ~1 min for 1k games
-    def pick_move(self, game_state):
-        ev_dict = tree_search(0, game_state)
-        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
-
-class D1TreeBot(Algo):
-    # vs GreedyDefensiveBot: 56% of 1k
-    # ~5 mins for 1k games
-    def pick_move(self, game_state):
-        ev_dict = tree_search(1, game_state)
-        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
-
-class D2TreeBot(Algo):
-    # vs GreedyDefensiveBot: 59% of 100
-    # ~3 mins for 100 games
-    def pick_move(self, game_state):
-        ev_dict = tree_search(2, game_state)
-        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
-
-class D3TreeBot(Algo):
-    # vs GreedyDefensiveBot: 8/10
-    # 15 seconds per game, 3 mins for 10
-    def pick_move(self, game_state):
-        ev_dict = tree_search(3, game_state)
-        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
