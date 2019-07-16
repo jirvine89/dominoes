@@ -1,11 +1,13 @@
 import unittest
 import algos
+import operator as op
 from board import Board
 from game_state import GameState
 from tile import Tile, get_all_tiles
 from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
 
+# TODO: Add tests for tree_search
 class TestAlgos(unittest.TestCase):
     def setUp(self):
         self.board = Board()
@@ -409,7 +411,7 @@ class TestAlgos(unittest.TestCase):
         move_vals = [0.7, 0.5]
         self.assertEqual(algos.expected_value_opp_draw(move_vals, 0.2), 0.6 * 0.2)
 
-    def test_tree_search_zero_depth(self):
+    def test_tree_search(self):
         hand = set([
             Tile(3, 4), # Scores 10 Right
             Tile(0, 3), # Scores 15 Up
@@ -433,8 +435,37 @@ class TestAlgos(unittest.TestCase):
         for k, v in ev_dict.items():
             print k, v
 
-# TODO: Add tests for Algo classes, not just functions
-# TODO: Add tests for tree_search
+    def test_tree_search_tree_node(self):
+        def node_to_str(node):
+            val_str = '%.4f' % node.ev
+            if node.prob:
+                val_str += ', %.3f' % node.prob
+            return '%s:   \t%s\t([%d, %d] %d %s)' % (
+                str(node.move), val_str, node.game_state.my_score,
+                node.game_state.opp_score, node.game_state.opp_hand_size,
+                node.game_state.my_turn)
+
+        hand = set([
+            Tile(3, 4), # Scores 10 Right
+            Tile(0, 3), # Scores 15 Up
+            Tile(6, 1), # Doesn't score
+        ])
+        gs = GameState(self.board, 0, 0, 150, hand, 4, True)
+        tree_node = algos.TreeNode(gs, None)
+        print tree_node.game_state.my_turn
+        ev_dict = algos.tree_search(1, gs, tree_node)
+        print tree_node.game_state.my_turn
+        tree_node.ev = max(ev_dict.values())
+        print '\nTree Node:'
+        print node_to_str(tree_node)
+        for child in sorted(tree_node.children, key=lambda x: x.ev, reverse=True):
+            print '\t%s' % node_to_str(child)
+            for grandchild in sorted(child.children, key=lambda x: x.ev):
+                print '\t\t%s' % node_to_str(grandchild)
+                for greatgrandchild in grandchild.children:
+                    print '\t\t\t%s' % node_to_str(greatgrandchild)
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,5 +1,6 @@
 import random
 import math
+import copy
 import operator as op
 from functools import reduce
 from tile import get_all_tiles
@@ -247,9 +248,13 @@ def mean(arr):
 def expected_value_opp_draw(tile_vals, prob_draw):
     return prob_draw * mean(tile_vals)
 
-def tree_inputs_from_game_state(gs):
-    return (gs.board, gs.my_score, gs.opp_score, gs.play_to,
-            gs.hand, gs.opp_hand_size, gs.my_turn)
+class TreeNode(object):
+    def __init__(self, game_state, move):
+        self.children = []
+        self.game_state = copy.deepcopy(game_state)
+        self.move = move
+        self.ev = None
+        self.prob = None
 
 # Searches through tree of moves up to depth given, then uses
 # game_state_value
@@ -261,14 +266,20 @@ def tree_inputs_from_game_state(gs):
 # * Add tree
 # * Add E2E tests for this function
 # * Refactor into smaller chunks, to fit in 50 lines
+
+# NOTE: Just added tree_node logic, untested and probably unfinished
 def tree_search(depth, game_state, tree_node=None):
+    game_state.my_turn = True
     board = game_state.board
     hand = game_state.hand
 
     # If boxed out, score the game
     other_tiles = get_other_tiles(board, hand)
     if board_is_boxed_out(board):
-        return {(None, None): boxed_out_value(game_state)}
+        ev = boxed_out_value(game_state)
+        if tree_node:
+            tree_node.ev = ev
+        return {(None, None): ev}
 
     # Get valid moves, along with extra tiles form simulation
     valid_moves_and_extra_tiles = get_valid_moves_and_extra_tiles(
@@ -289,6 +300,11 @@ def tree_search(depth, game_state, tree_node=None):
             move_score = board.make_move(tile, direction)
             game_state.my_score += move_score
             hand.remove(tile)
+        game_state.my_turn = False
+
+        if tree_node:
+            move_tree_node = TreeNode(game_state, move)
+            tree_node.children.append(move_tree_node)
 
         # If game over, round over, boxed out OR depth == 0, use game value
         if depth == 0 or len(hand) == 0 or game_state.my_score >= game_state.play_to:
@@ -315,24 +331,39 @@ def tree_search(depth, game_state, tree_node=None):
                     opp_move_score = board.make_move(opp_tile, opp_direction)
                     game_state.opp_score += opp_move_score
                     game_state.opp_hand_size -= 1
+                game_state.my_turn = True
+
+                opp_move_tree_node = None
+                if tree_node:
+                    opp_move_tree_node = TreeNode(game_state, opp_move)
+                    move_tree_node.children.append(opp_move_tree_node)
                 # Score move
                 # TODO: Handle case when board is boxed out?
                 if game_state.opp_hand_size == 0 or depth == 0:
                     val = game_state_value(game_state)
                     opp_move_vals[opp_move] = val
-                    #if prob_draw:
-                    game_state.opp_hand_size += exp_num_draws_if_drawing
-                    val_draw = game_state_value(game_state)
-                    game_state.opp_hand_size -= exp_num_draws_if_drawing
-                    opp_move_vals_draw[opp_move] = val_draw
                 else:
-                    tree_results = tree_search(depth - 1, game_state)
+                    tree_results = tree_search(depth - 1, game_state, opp_move_tree_node)
                     opp_move_vals[opp_move] = max(tree_results.values())
-                    #if prob_draw:
+                if tree_node:
+                    opp_move_tree_node.ev = opp_move_vals[opp_move]
+                # Add draw situation
+                if prob_draw:
                     game_state.opp_hand_size += exp_num_draws_if_drawing
-                    tree_results_draw = tree_search(depth - 1, game_state)
+                    opp_move_draw_tree_node = None
+                    if tree_node:
+                        opp_move_draw_tree_node = TreeNode(game_state, opp_move)
+                        move_tree_node.children.append(opp_move_draw_tree_node)
+                    if depth == 0:
+                        val_draw = game_state_value(game_state)
+                        opp_move_vals_draw[opp_move] = val_draw
+                    else:
+                        tree_results_draw = tree_search(depth - 1, game_state, opp_move_draw_tree_node)
+                        opp_move_vals_draw[opp_move] = max(tree_results_draw.values())
+                    if tree_node:
+                        opp_move_draw_tree_node.ev = opp_move_vals_draw[opp_move]
                     game_state.opp_hand_size -= exp_num_draws_if_drawing
-                    opp_move_vals_draw[opp_move] = max(tree_results_draw.values())
+
                 # Undo opp move to board, scoreboard, hands, boneyard
                 if opp_tile:
                     game_state.opp_hand_size += 1
@@ -349,12 +380,15 @@ def tree_search(depth, game_state, tree_node=None):
             draw_val = expected_value_opp_draw(opp_tile_vals_draw, prob_draw)
             ev += draw_val
             EV_dict[move] = ev
-
+        # Add child tree node for this move
+        if tree_node:
+            move_tree_node.ev = EV_dict[move]
         # Undo move to board, scoreboard, hand, extra tiles
         if tile:
             board.undo_move(tile, direction)
             hand.add(tile)
             game_state.my_score -= move_score
+        game_state.my_turn = True
         hand -= extra_tiles
         other_tiles.update(extra_tiles)
 
