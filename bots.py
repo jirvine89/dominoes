@@ -32,26 +32,34 @@ class TreeBot(Bot):
         return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 class D0TreeBot(TreeBot):
-    # vs GreedyScoringBot: 50% of 1k
+    # vs GreedygBot: 50% of 1k
     # ~1 min for 1k games
     def __init__(self, player_name=None):
         super(D0TreeBot, self).__init__(0, player_name)
 
 class D1TreeBot(TreeBot):
     # vs GreedyDefensiveBot: 56% of 1k
-    # ~5 mins for 1k games
+    # vs GreedyBot: 69% of 1k
+    # ~2 mins for 1k games
     def __init__(self, player_name=None):
         super(D1TreeBot, self).__init__(1, player_name)
 
 class D2TreeBot(TreeBot):
     # vs GreedyDefensiveBot: 59% of 100
-    # ~3 mins for 100 games
+    # vs GreedyBot: 75% of 100
+    # ~2 mins for 100 games
     def __init__(self, player_name=None):
         super(D2TreeBot, self).__init__(2, player_name)
 
 class D3TreeBot(TreeBot):
     # vs GreedyDefensiveBot: 66% of 100
-    # 15 seconds per game, 3 mins for 10 -> 30 mins for 100
+    # vs GreedyBot: 69% of 100
+    # ~2 secs per game, 25 secs for 10, 4 mins for 100
     def __init__(self, player_name=None):
         super(D3TreeBot, self).__init__(3, player_name)
+
+class D4TreeBot(TreeBot):
+    # ~30 secs per game -> 5 mins per 10, 1 hr per 100
+    def __init__(self, player_name=None):
+        super(D4TreeBot, self).__init__(4, player_name)
 

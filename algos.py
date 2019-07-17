@@ -131,6 +131,7 @@ def game_state_value(gs):
     # Convert scores to probability of winning
     return prob_winning_from_scores(my_score, opp_score, gs.play_to)
 
+# TODO: speed this up
 def board_is_boxed_out(board):
     for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
         for direction in all_dirs():

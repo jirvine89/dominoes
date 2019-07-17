@@ -13,6 +13,10 @@ class Board:
     self.bone_yard = set()
     self.total_count = 0
     self.history = []
+    self.left_side = None
+    self.right_side = None
+    self.up_side = None
+    self.down_side = None
 
   def get_tiles_on_board(self):
     return self.main_row + self.up + self.down
@@ -23,6 +27,8 @@ class Board:
   def _update_spinner(self, tile):
     if not self.spinner and tile.is_double():
       self.spinner = tile
+      self.up_side = tile.small_side
+      self.down_side = tile.small_side
 
   def get_total_count(self):
     if not self.main_row:
@@ -43,9 +49,18 @@ class Board:
   def _update_total_count(self):
     self.total_count = self.get_total_count()
 
+  # TODO: test this is the same as old version
   def _get_end_side(self, direction):
-    if not self.main_row:
-      return None
+    if direction == Dir.LEFT:
+        return self.left_side
+    elif direction == Dir.RIGHT:
+        return self.right_side
+    elif direction == Dir.UP:
+        return self.up_side
+    elif direction == Dir.DOWN:
+        return self.down_side
+
+  def _get_end_side_old(self, direction):
     if direction == Dir.LEFT:
       return self.main_row[0].left_side()
     if direction == Dir.RIGHT:
@@ -109,37 +124,57 @@ class Board:
     self._set_orientation(tile, Dir.LEFT)
     self.main_row = [tile] + self.main_row
     self._update_spinner(tile)
+    self.left_side = tile.left_side()
 
   def remove_from_left(self):
     removed_tile = self.main_row[0]
     self.main_row = self.main_row[1:]
     if self.spinner and removed_tile == self.spinner:
       self.spinner = None
+      self.up_side = None
+      self.down_side = None
+    if self.main_row:
+      self.left_side = self.main_row[0].left_side()
 
   def add_to_right(self, tile):
     self._set_orientation(tile, Dir.RIGHT)
     self.main_row.append(tile)
     self._update_spinner(tile)
+    self.right_side = tile.right_side()
 
   def remove_from_right(self):
     removed_tile = self.main_row[-1]
     self.main_row = self.main_row[:-1]
     if self.spinner and removed_tile == self.spinner:
       self.spinner = None
+      self.up_side = None
+      self.down_side = None
+    if self.main_row:
+      self.right_side = self.main_row[-1].right_side()
 
   def add_to_top(self, tile):
     self._set_orientation(tile, Dir.UP)
     self.up.append(tile)
+    self.up_side = tile.up_side()
 
   def remove_from_top(self):
     self.up = self.up[:-1]
+    if self.up:
+        self.up_side = self.up[-1].up_side()
+    else:
+        self.up_side = self.spinner.small_side
 
   def add_to_bottom(self, tile):
     self._set_orientation(tile, Dir.DOWN)
     self.down.append(tile)
+    self.down_side = tile.down_side()
 
   def remove_from_bottom(self):
     self.down = self.down[:-1]
+    if self.down:
+        self.down_side = self.down[-1].down_side()
+    else:
+        self.down_side = self.spinner.small_side
 
   def _spinner_on_end(self):
     return self.spinner and self.main_row and (
