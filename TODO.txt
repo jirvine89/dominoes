@@ -1,7 +1,8 @@
 * Tree search algo
-  - Add tree visualization
-  - Improve quality: debug
-  - Improve speed: diagnostics, tree trimmming
+  - Vizualize trees better
+  - Add tests
+  - Improve speed to go deeper: diagnostics, tree trimmming
+  - Improve game state value fn, serve bonus
 * Add to UI:
   - Add scoreboard for multiple games
   - Show more info on game like board count
@@ -14,9 +15,6 @@
   - Encode state and moves as inputs for net
   - Set up deep net training: TF, cloud resources?
   - If necessary, speed up the core
-* Refactoring
-  - Rewrite serve_value.py to work again
-  - Create algos_util.py
 * More tests
   - Unit tests for Board and Game
   - Integration tests for internal state (history)

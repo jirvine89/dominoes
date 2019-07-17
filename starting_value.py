@@ -105,6 +105,10 @@ def main(argv):
 # 9.00 expected value of starting
 #
 # D2TreeBot, 1k games:
+# 17.84 avg diff when kept serve
+# -9.10 avg diff when lost serve
+# 62.90% kept serve
+# 21.15 expected value of starting
 
 
 if __name__ == "__main__":
