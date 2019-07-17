@@ -31,6 +31,10 @@ class Game:
   def current_player(self):
     return self.players[self.turn_index]
 
+  def opponent(self):
+    # NOTE: assumes 2P
+    return self.players[(self.turn_index + 1) % 2]
+
   def _get_player_and_index_by_name(self, name):
     for i, player in enumerate(self.players):
         if player.name == name:
@@ -118,7 +122,7 @@ class Game:
     self.round_over = True
     return domino_points
 
-  def _game_is_blocked_out(self):
+  def game_is_blocked_out(self):
     for player in self.players:
       if player.can_play(self.board):
         return False
@@ -188,7 +192,7 @@ class Game:
   def knock(self):
     player = self.current_player()
     self.last_move = '%s knocked' % player.name
-    if self._game_is_blocked_out():
+    if self.game_is_blocked_out():
       self._score_block_out()
     else:
       self._next_players_move()

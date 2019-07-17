@@ -420,50 +420,80 @@ class TestAlgos(unittest.TestCase):
         gs = GameState(self.board, 0, 0, 150, hand, 4)
         ev_dict = algos.tree_search(0, gs)
         print
-        for k, v in ev_dict.items():
+        for k, v in sorted(ev_dict.items(), key=lambda x: x[1], reverse=True):
             print k, v
         ev_dict = algos.tree_search(1, gs)
         print
-        for k, v in ev_dict.items():
+        for k, v in sorted(ev_dict.items(), key=lambda x: x[1], reverse=True):
             print k, v
-        ev_dict = algos.tree_search(1, gs)
+        ev_dict = algos.tree_search(2, gs)
         print
-        for k, v in ev_dict.items():
+        for k, v in sorted(ev_dict.items(), key=lambda x: x[1], reverse=True):
             print k, v
-        ev_dict = algos.tree_search(1, gs)
+        ev_dict = algos.tree_search(3, gs)
         print
-        for k, v in ev_dict.items():
+        for k, v in sorted(ev_dict.items(), key=lambda x: x[1], reverse=True):
             print k, v
 
     def test_tree_search_tree_node(self):
         def node_to_str(node):
             val_str = '%.4f' % node.ev
-            if node.prob:
-                val_str += ', %.3f' % node.prob
-            return '%s:   \t%s\t([%d, %d] %d %s)' % (
-                str(node.move), val_str, node.game_state.my_score,
-                node.game_state.opp_score, node.game_state.opp_hand_size,
+            if node.prob is not None:
+                val_str += ', %.4f' % node.prob
+            else:
+                val_str += ', 1.0000'
+            move_str = str(node.move)
+            if node.simulated:
+                move_str += ' [S]'
+            return '%s:    \t%s\t([%d, %d] %d %d %s)' % (
+                move_str, val_str, node.game_state.my_score,
+                node.game_state.opp_score, len(node.game_state.hand),
+                node.game_state.opp_hand_size,
                 node.game_state.my_turn)
 
+        # Board:
+        # L: 6
+        # R: 3 (double)
+        # U: 0
+        # D: 6 (spinner)
+        # Count: 12
+        # Tiles out: (6,6), (6,3), (6,4), (6,0), (3,3), (4,5), (5, 6)
+        moves_for_0_0 = [(Tile(0,0), Dir.UP)]
         hand = set([
-            Tile(3, 4), # Scores 10 Right
-            Tile(0, 3), # Scores 15 Up
+            #Tile(3, 4), # Scores 10 Right
+            #Tile(0, 3), # Scores 15 Up
+            #Tile(6, 1), # Doesn't score
+            Tile(3, 4), #
             Tile(6, 1), # Doesn't score
         ])
-        gs = GameState(self.board, 0, 0, 150, hand, 4, True)
+        gs = GameState(self.board, 0, 0, 150, hand, 2, True)
         tree_node = algos.TreeNode(gs, None)
         print tree_node.game_state.my_turn
-        ev_dict = algos.tree_search(1, gs, tree_node)
+        ev_dict = algos.tree_search(3, gs, tree_node)
         print tree_node.game_state.my_turn
         tree_node.ev = max(ev_dict.values())
         print '\nTree Node:'
-        print node_to_str(tree_node)
-        for child in sorted(tree_node.children, key=lambda x: x.ev, reverse=True):
-            print '\t%s' % node_to_str(child)
-            for grandchild in sorted(child.children, key=lambda x: x.ev):
-                print '\t\t%s' % node_to_str(grandchild)
-                for greatgrandchild in grandchild.children:
-                    print '\t\t\t%s' % node_to_str(greatgrandchild)
+        print 'O: %s' % node_to_str(tree_node)
+        def sorting_key(x):
+            if x.simulated:
+                return -x.prob
+            else:
+                if x.prob:
+                    return -1-x.prob
+                return -x.ev
+        for child in sorted(tree_node.children, key=sorting_key):
+            print '\tM: %s' % node_to_str(child)
+            prob_sum = 0.0
+            ev = 0.0
+            for grandchild in sorted(child.children, key=sorting_key):
+                prob_sum += grandchild.prob
+                ev += grandchild.ev * grandchild.prob
+                print '\t\tO: %s' % node_to_str(grandchild)
+                for greatgrandchild in sorted(grandchild.children, key=sorting_key):
+                    print '\t\t\tM: %s' % node_to_str(greatgrandchild)
+                    for g2grandchild in sorted(greatgrandchild.children, key=sorting_key):
+                        print '\t\t\t\tO: %s' % node_to_str(g2grandchild)
+            print '\t\tprob_sum = %.3f, ev = %.4f' % (prob_sum, ev)
 
 
 

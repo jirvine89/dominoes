@@ -70,6 +70,12 @@ def pick_defensive_move(board, hand):
 def total_points_in_hand(hand):
     return sum([tile.total_points() for tile in hand])
 
+# TODO: Update this to include num tiles left in each hand
+# * If tiles are same and on serve, bonus = 12
+# * If I have 1 tile and opp has 10 tiles, bonus = 12 + 50
+# * If I have 1 tile and opp has 1 tile, bonus = 12 + 5
+# * BUT also want to take into account uncertainty of keeping serve
+#  and need to modify as get near play_to
 def serve_bonus(score, play_to):
     if score < play_to - 15:
         return 12
@@ -197,8 +203,6 @@ def ncr(n, r):
     return numer / denom
 
 def compute_prob_draw(num_valid_tiles, hand_size, num_total_tiles):
-    #print 'prob'
-    #print num_valid_tiles, hand_size, num_total_tiles
     # Num possible hands = Choose(num_total_tiles, hand_size)
     # Num hands with only invalid tiles = Choose(num_invalid_tiles, hand_size)
     num_possible_hands = ncr(num_total_tiles, hand_size)
@@ -219,13 +223,16 @@ def compute_exp_num_draws_given_drawing(num_valid_moves, boneyard_size):
         sum_prev_probs += prob
     return int(round(exp))
 
-def move_dict_to_sorted_list_by_tiles(move_vals):
+def move_dict_to_sorted_list_by_tiles(move_vals, pick_max=True):
     tile_vals = {}
     for (tile, direction), val in move_vals.items():
         if not tile in tile_vals.keys():
             tile_vals[tile] = val
         else:
-            tile_vals[tile] = min(tile_vals[tile], val)
+            if pick_max:
+                tile_vals[tile] = max(tile_vals[tile], val)
+            else:
+                tile_vals[tile] = min(tile_vals[tile], val)
     return sorted(tile_vals.values())
 
 def expected_value_opp_moves(tile_vals, hand_size, num_total_tiles):
@@ -241,6 +248,44 @@ def expected_value_opp_moves(tile_vals, hand_size, num_total_tiles):
             break
     return exp
 
+def prob_opp_moves(move_vals_dict, hand_size, num_total_tiles):
+    seen_tiles = set()
+    exp = 0.0
+    sum_probs = 0.0
+    num_tiles_left = num_total_tiles
+    probs = {}
+    for (move, val) in sorted(move_vals_dict.items(), key=lambda x: x[1]):
+        tile = move[0]
+        if tile in seen_tiles or num_tiles_left < hand_size:
+            probs[move] = 0.0
+            continue
+        seen_tiles.add(tile)
+        prob_is_max = (1 - sum_probs) * (1. * hand_size / num_tiles_left)
+        probs[move] = prob_is_max
+        sum_probs += prob_is_max
+        num_tiles_left -= 1
+    return probs
+
+def prob_opp_moves_draw(move_vals_dict, prob_draw):
+    seen_tiles = set()
+    probs = {}
+    num_unique_tiles = len(set([move[0] for move in move_vals_dict.keys()]))
+    for (move, val) in sorted(move_vals_dict.items(), key=lambda x: x[1]):
+        tile = move[0]
+        if tile in seen_tiles:
+            probs[move] = 0.0
+            continue
+        seen_tiles.add(tile)
+        probs[move] = prob_draw / num_unique_tiles
+    return probs
+
+def expected_value_moves(move_vals_dict, prob_dict):
+    assert set(move_vals_dict.keys()) == set(prob_dict.keys())
+    ev = 0.0
+    for move, val in move_vals_dict.iteritems():
+        ev += val * prob_dict[move]
+    return ev
+
 def mean(arr):
     if not arr: return 0.0
     return 1. * sum(arr) / len(arr)
@@ -255,6 +300,7 @@ class TreeNode(object):
         self.move = move
         self.ev = None
         self.prob = None
+        self.simulated = False
 
 # Searches through tree of moves up to depth given, then uses
 # game_state_value
@@ -263,11 +309,10 @@ class TreeNode(object):
 # If no valid moves, returns dict from (None, None) to EV
 # from drawing.
 # TODO:
-# * Add tree
 # * Add E2E tests for this function
 # * Refactor into smaller chunks, to fit in 50 lines
-
-# NOTE: Just added tree_node logic, untested and probably unfinished
+# NOTE: This assumes that the opponent has perfect information
+# of my hand when choosing moves!
 def tree_search(depth, game_state, tree_node=None):
     game_state.my_turn = True
     board = game_state.board
@@ -305,6 +350,9 @@ def tree_search(depth, game_state, tree_node=None):
         if tree_node:
             move_tree_node = TreeNode(game_state, move)
             tree_node.children.append(move_tree_node)
+            move_tree_node.simulated = used_simulations
+            if used_simulations:
+                move_tree_node.prob = 1.0 / len(valid_moves_and_extra_tiles)
 
         # If game over, round over, boxed out OR depth == 0, use game value
         if depth == 0 or len(hand) == 0 or game_state.my_score >= game_state.play_to:
@@ -312,19 +360,21 @@ def tree_search(depth, game_state, tree_node=None):
         elif board_is_boxed_out(board):
             EV_dict[move] = boxed_out_value(game_state)
         else:
-            # See if there's a prob of draw. If so, try each move with and without exp num extra opp tiles
+            # If prob draw, try each move with and without exp num extra opp tiles
             opp_valid_moves = get_valid_moves(board, other_tiles)
             num_opp_valid_tiles = len(set([m[0] for m in opp_valid_moves]))
-            prob_draw = compute_prob_draw(num_opp_valid_tiles, game_state.opp_hand_size, len(other_tiles))
+            prob_draw = compute_prob_draw(
+                num_opp_valid_tiles, game_state.opp_hand_size, len(other_tiles))
             exp_num_draws_if_drawing = compute_exp_num_draws_given_drawing(
                 num_opp_valid_tiles, len(other_tiles) - game_state.opp_hand_size)
 
             # Loop through opponent's moves, keeping track of value of each
             opp_move_vals = {}
             opp_move_vals_draw = {}
+            opp_tree_node_from_move = {}
+            opp_tree_node_draw_from_move = {}
             for opp_move in opp_valid_moves or [(None, None)]:
                 opp_tile, opp_direction = opp_move
-                #print move, opp_tile, opp_direction
                 depth -= 1
                 if opp_tile:
                     # Make move, update
@@ -337,6 +387,7 @@ def tree_search(depth, game_state, tree_node=None):
                 if tree_node:
                     opp_move_tree_node = TreeNode(game_state, opp_move)
                     move_tree_node.children.append(opp_move_tree_node)
+                    opp_tree_node_from_move[opp_move] = opp_move_tree_node
                 # Score move
                 # TODO: Handle case when board is boxed out?
                 if game_state.opp_hand_size == 0 or depth == 0:
@@ -348,12 +399,14 @@ def tree_search(depth, game_state, tree_node=None):
                 if tree_node:
                     opp_move_tree_node.ev = opp_move_vals[opp_move]
                 # Add draw situation
-                if prob_draw:
+                if prob_draw > 0:
                     game_state.opp_hand_size += exp_num_draws_if_drawing
                     opp_move_draw_tree_node = None
                     if tree_node:
                         opp_move_draw_tree_node = TreeNode(game_state, opp_move)
+                        opp_move_draw_tree_node.simulated = True
                         move_tree_node.children.append(opp_move_draw_tree_node)
+                        opp_tree_node_draw_from_move[opp_move] = opp_move_draw_tree_node
                     if depth == 0:
                         val_draw = game_state_value(game_state)
                         opp_move_vals_draw[opp_move] = val_draw
@@ -371,14 +424,25 @@ def tree_search(depth, game_state, tree_node=None):
                     board.undo_move(opp_tile, opp_direction)
                 depth += 1
 
+            prob_moves = prob_opp_moves(opp_move_vals, game_state.opp_hand_size, len(other_tiles))
+            prob_moves_draw = prob_opp_moves_draw(opp_move_vals_draw, prob_draw)
+            ev = expected_value_moves(opp_move_vals, prob_moves)
+            ev += expected_value_moves(opp_move_vals_draw, prob_moves_draw)
+            if tree_node:
+                for opp_move, prob in prob_moves.iteritems():
+                    opp_move_node = opp_tree_node_from_move[opp_move]
+                    opp_move_node.prob = prob
+                for opp_move, prob in prob_moves_draw.iteritems():
+                    opp_move_node = opp_tree_node_draw_from_move[opp_move]
+                    opp_move_node.prob = prob
             # Get expected value from these moves
             # Sort opponent values, lowest first
             # EV_dict[my_move] = dot product of values and probs
-            opp_tile_vals = move_dict_to_sorted_list_by_tiles(opp_move_vals)
-            opp_tile_vals_draw = move_dict_to_sorted_list_by_tiles(opp_move_vals_draw)
-            ev = expected_value_opp_moves(opp_tile_vals, game_state.opp_hand_size, len(other_tiles))
-            draw_val = expected_value_opp_draw(opp_tile_vals_draw, prob_draw)
-            ev += draw_val
+            #opp_tile_vals = move_dict_to_sorted_list_by_tiles(opp_move_vals)
+            #opp_tile_vals_draw = move_dict_to_sorted_list_by_tiles(opp_move_vals_draw)
+            #ev = expected_value_opp_moves(opp_tile_vals, game_state.opp_hand_size, len(other_tiles))
+            #draw_val = expected_value_opp_draw(opp_tile_vals_draw, prob_draw)
+            #ev += draw_val
             EV_dict[move] = ev
         # Add child tree node for this move
         if tree_node:
@@ -394,6 +458,7 @@ def tree_search(depth, game_state, tree_node=None):
 
     # If my moves were sims of draws, return the average of all of them
     if used_simulations:
+        # TODO: treats all moves as equally likely, even  though some are duplicates of tiles
         return {(None, None): mean(EV_dict.values())}
     else:
         return EV_dict
