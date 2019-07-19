@@ -35,7 +35,6 @@ class Board(object):
     self.down = []
     self.spinner = None
     self.bone_yard = set()
-    self.total_count = 0
     self.history = []
     self.end_sides = {Dir.LEFT: None, Dir.RIGHT: None, Dir.UP: None, Dir.DOWN: None}
     self.remaining_tile_index.reset()
@@ -81,40 +80,13 @@ class Board(object):
               self.main_row[-1].right_points())
 
   def score(self):
-    if self.total_count and self.total_count % 5 == 0:
-      return self.total_count
+    total_count = self.get_total_count()
+    if total_count and total_count % 5 == 0:
+      return total_count
     return 0
 
-  def _update_total_count(self):
-    self.total_count = self.get_total_count()
-
-  # TODO: test this is the same as old version
   def _get_end_side(self, direction):
     return self.end_sides[direction]
-    #if direction == Dir.LEFT:
-    #    return self.left_side
-    #elif direction == Dir.RIGHT:
-    #    return self.right_side
-    #elif direction == Dir.UP:
-    #    return self.up_side
-    #elif direction == Dir.DOWN:
-    #    return self.down_side
-
-  def _get_end_side_old(self, direction):
-    if direction == Dir.LEFT:
-      return self.main_row[0].left_side()
-    if direction == Dir.RIGHT:
-      return self.main_row[-1].right_side()
-    if direction == Dir.UP:
-      if self.up:
-        return self.up[-1].up_side()
-      else:
-        return self.spinner.up_side()
-    if direction == Dir.DOWN:
-      if self.down:
-        return self.down[-1].down_side()
-      else:
-        return self.spinner.down_side()
 
   def end_is_double(self, direction):
     if not self.main_row:
@@ -230,84 +202,9 @@ class Board(object):
     self.end_sides[direction] = new_end
     if self.spinner and tile == self.spinner:
       self._remove_spinner()
-    tile_side, _ = self._get_tile_sides(tile, direction)
     self.remaining_tile_index.add_tile(tile)
     if not self.main_row:
       self.end_sides[opposite(direction)] = None
-
-  #def add_to_left(self, tile):
-  #  self._set_orientation(tile, Dir.LEFT)
-  #  self.main_row = [tile] + self.main_row
-  #  self._update_spinner(tile)
-  #  self.end_sides[Dir.LEFT] = tile.left_side()
-  #  self.remaining_tile_index.remove_tile(tile)
-  #  # update playable moves
-  #  if not self.main_row:
-  #    self._add_to_playable_moves(self.right_side, Dir.RIGHT)
-  #  self._add_to_playable_moves(self.left_side, Dir.LEFT)
-
-  #def add_to_right(self, tile):
-  #  self._set_orientation(tile, Dir.RIGHT)
-  #  self.main_row.append(tile)
-  #  self._update_spinner(tile)
-  #  self.end_sides[Dir.RIGHT] = tile.right_side()
-  #  self.remaining_tile_index.remove_tile(tile)
-  #  # update playable moves
-  #  if not self.main_row:
-  #    self._add_to_playable_moves(self.left_side, Dir.LEFT)
-  #  self._add_to_playable_moves(self.right_side, Dir.RIGHT)
-
-  #def add_to_top(self, tile):
-  #  self._set_orientation(tile, Dir.UP)
-  #  self.up.append(tile)
-  #  self.up_side = tile.up_side()
-  #  self.remaining_tile_index.remove_tile(tile)
-  #  self._add_to_playable_moves(self.up_side, Dir.UP)
-
-  #def add_to_bottom(self, tile):
-  #  self._set_orientation(tile, Dir.DOWN)
-  #  self.down.append(tile)
-  #  self.down_side = tile.down_side()
-  #  self.remaining_tile_index.remove_tile(tile)
-  #  self._add_to_playable_moves(self.down_side, Dir.DOWN)
-
-  #def remove_from_left(self):
-  #  removed_tile = self.main_row[0]
-  #  self.main_row = self.main_row[1:]
-  #  if self.spinner and removed_tile == self.spinner:
-  #    self.spinner = None
-  #    self.up_side = None
-  #    self.down_side = None
-  #  if self.main_row:
-  #    self.left_side = self.main_row[0].left_side()
-  #  self.tile_index.remove_tile(tile)
-
-  #def remove_from_right(self):
-  #  removed_tile = self.main_row[-1]
-  #  self.main_row = self.main_row[:-1]
-  #  if self.spinner and removed_tile == self.spinner:
-  #    self.spinner = None
-  #    self.up_side = None
-  #    self.down_side = None
-  #  if self.main_row:
-  #    self.right_side = self.main_row[-1].right_side()
-  #  self.tile_index.remove_tile(tile)
-
-  #def remove_from_top(self):
-  #  self.up = self.up[:-1]
-  #  if self.up:
-  #      self.up_side = self.up[-1].up_side()
-  #  else:
-  #      self.up_side = self.spinner.small_side
-  #  self.tile_index.remove_tile(tile)
-
-  #def remove_from_bottom(self):
-  #  self.down = self.down[:-1]
-  #  if self.down:
-  #      self.down_side = self.down[-1].down_side()
-  #  else:
-  #      self.down_side = self.spinner.small_side
-  #  self.tile_index.remove_tile(tile)
 
   def _spinner_on_end(self):
     return self.spinner and self.main_row and (
@@ -330,30 +227,12 @@ class Board(object):
 
   def make_move(self, tile, direction):
     self.add_tile_to_board(tile, direction)
-    #if direction == Dir.LEFT:
-    #  self.add_to_left(tile)
-    #elif direction == Dir.RIGHT:
-    #  self.add_to_right(tile)
-    #elif direction == Dir.UP:
-    #  self.add_to_top(tile)
-    #elif direction == Dir.DOWN:
-    #  self.add_to_bottom(tile)
-    self._update_total_count()
     return self.score()
 
   def undo_move(self, tile, direction):
     if tile is None:
       return last_move
     self.remove_from_board(direction)
-    #if direction == Dir.LEFT:
-    #  self.remove_from_left()
-    #elif direction == Dir.RIGHT:
-    #  self.remove_from_right()
-    #elif direction == Dir.UP:
-    #  self.remove_from_top()
-    #elif direction == Dir.DOWN:
-    #  self.remove_from_bottom()
-    self._update_total_count()
     tile.orientation = Orientation.NOT_ON_BOARD
 
   def tiles_in_bone_yard(self):
@@ -375,4 +254,4 @@ class Board(object):
   def __repr__(self):
     return ('Board:\nSpinner: ' +  str(self.spinner) + '\nMain row: ' +
             str(self.main_row) + '\nUp: ' + str(self.up) + '\nDown: ' +
-            self._down_repr() + '\nCount: ' + str(self.total_count))
+            self._down_repr() + '\nCount: ' + str(self.get_total_count()))

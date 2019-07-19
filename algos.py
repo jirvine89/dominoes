@@ -138,11 +138,12 @@ def game_state_value(gs):
 
 # TODO: speed this up
 def board_is_boxed_out(board):
-    for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
-        for direction in all_dirs():
-            if board.valid_move(tile, direction):
-                return False
-    return True
+    return not board.get_valid_moves()
+    #for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
+    #    for direction in all_dirs():
+    #        if board.valid_move(tile, direction):
+    #            return False
+    #return True
 
 def playable_moves(board, tile):
     playable_moves = []
