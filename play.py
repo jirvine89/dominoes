@@ -26,7 +26,7 @@ TILE_WIDTH = 60
 TILE_HEIGHT = 2 * TILE_WIDTH
 
 class TileWidget(Widget):
-    image_file = StringProperty("/Users/jirvine/dominoes/tile_images/upside_down.png")
+    image_file = StringProperty("./tile_images/upside_down.png")
     angle = NumericProperty(0)
     width = NumericProperty(TILE_WIDTH)
     height = NumericProperty(TILE_HEIGHT)

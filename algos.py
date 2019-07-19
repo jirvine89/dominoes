@@ -10,14 +10,19 @@ from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
 
 def get_valid_moves(board, hand=None):
-    valid_moves = []
-    if not hand:
-        hand = set(get_all_tiles()) - set(board.get_tiles_on_board())
-    for tile in hand:
-        for direction in all_dirs():
-            if board.valid_move(tile, direction):
-                valid_moves.append((tile, direction))
-    return valid_moves
+    all_valid_moves = board.get_valid_moves()
+    if hand:
+        return [move for move in all_valid_moves if move[0] in hand]
+    else:
+        return all_valid_moves
+    #valid_moves = []
+    #if not hand:
+    #    hand = set(get_all_tiles()) - set(board.get_tiles_on_board())
+    #for tile in hand:
+    #    for direction in all_dirs():
+    #        if board.valid_move(tile, direction):
+    #            valid_moves.append((tile, direction))
+    #return valid_moves
 
 def get_other_tiles(board, hand):
     return set(get_all_tiles()) - set(hand) - set(board.get_tiles_on_board())
@@ -312,6 +317,7 @@ class TreeNode(object):
 # TODO:
 # * Add E2E tests for this function
 # * Refactor into smaller chunks, to fit in 50 lines
+# * If draw, don't run algo
 # NOTE: This assumes that the opponent has perfect information
 # of my hand when choosing moves!
 def tree_search(depth, game_state, tree_node=None):

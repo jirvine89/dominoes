@@ -35,7 +35,17 @@ class TestAlgos(unittest.TestCase):
             Tile(3, 1),
             Tile(0, 0)
         ])
-        valid_moves = algos.get_valid_moves(self.board, hand)
+        #valid_moves = algos.get_valid_moves(self.board, hand)
+        all_valid_moves = self.board.get_valid_moves()
+        valid_moves = [move for move in all_valid_moves if move[0] in hand]
+        #print
+        #print self.board.end_sides
+        #for k,v in self.board.playable_moves.items():
+        #    print k, v
+        #print all_valid_moves
+        #print hand
+        #print valid_moves
+        #print
         expected = [
             (Tile(6, 2), Dir.LEFT),
             (Tile(6, 2), Dir.DOWN),
@@ -275,7 +285,7 @@ class TestAlgos(unittest.TestCase):
             board = Board()
             for tile in get_all_tiles():
                 if tile not in hand and tile not in other_tiles:
-                    board.add_to_right(tile)
+                    board.add_tile_to_board(tile, Dir.RIGHT)
             return GameState(board, my_score, opp_score, play_to, hand, opp_hand_size)
 
         # They win
@@ -296,12 +306,14 @@ class TestAlgos(unittest.TestCase):
     def test_get_valid_moves_and_extra_tiles_when_valid_moves(self):
         # With valid moves
         hand = [Tile(6, 2), Tile(2, 2), Tile(3, 1), Tile(0, 0)]
-        valid_moves = [(Tile(6, 2), Dir.LEFT), (Tile(6, 2), Dir.DOWN),
-                       (Tile(3, 1), Dir.RIGHT), (Tile(0, 0), Dir.UP)]
+        expected_valid_moves = [(Tile(6, 2), Dir.LEFT), (Tile(6, 2), Dir.DOWN),
+                                (Tile(3, 1), Dir.RIGHT), (Tile(0, 0), Dir.UP)]
         valid_moves_and_extra_tiles = algos.get_valid_moves_and_extra_tiles(
             self.board, hand, 3)
-        expected = [(move, set()) for move in valid_moves]
-        self.assertEquals(valid_moves_and_extra_tiles, expected)
+        extra_tiles = [x[1] for x in valid_moves_and_extra_tiles]
+        valid_moves = [x[0] for x in valid_moves_and_extra_tiles]
+        self.assertEquals(extra_tiles, [set() for i in range(len(extra_tiles))])
+        self.assertEquals(set(valid_moves), set(expected_valid_moves))
 
     def test_get_valid_moves_and_extra_tiles_when_no_valid_moves(self):
         # With no valid moves
@@ -469,7 +481,7 @@ class TestAlgos(unittest.TestCase):
         gs = GameState(self.board, 0, 0, 150, hand, 2, True)
         tree_node = algos.TreeNode(gs, None)
         print tree_node.game_state.my_turn
-        ev_dict = algos.tree_search(3, gs, tree_node)
+        ev_dict = algos.tree_search(2, gs, tree_node)
         print tree_node.game_state.my_turn
         tree_node.ev = max(ev_dict.values())
         print '\nTree Node:'

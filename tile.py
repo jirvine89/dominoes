@@ -1,7 +1,6 @@
 from enum import Enum
 from dominoes_util import Orientation
 
-MIN_SIDE_VALUE = 0
 MAX_SIDE_VALUE = 6
 
 class Tile:
@@ -90,7 +89,7 @@ class Tile:
 
 def get_all_tiles():
   all_tiles = []
-  for i in range(MIN_SIDE_VALUE, MAX_SIDE_VALUE + 1):
+  for i in range(MAX_SIDE_VALUE + 1):
     for j in range(i, MAX_SIDE_VALUE + 1):
       tile = Tile(i, j)
       all_tiles.append(tile)
