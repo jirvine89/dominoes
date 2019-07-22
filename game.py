@@ -118,7 +118,7 @@ class Game:
   def _domino(self, player):
     domino_points = self._domino_points()
     player.add_score(domino_points)
-    self.last_move += '\nDominoes motha-fucka! %d points' % domino_points
+    self.last_move += '\nDomino motha-fucka! %d points' % domino_points
     self.round_over = True
     return domino_points
 

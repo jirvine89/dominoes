@@ -1,6 +1,6 @@
 import random
 from tile import get_all_tiles, MAX_SIDE_VALUE
-from dominoes_util import Dir, Orientation, opposite
+from dominoes_util import Dir, Orientation, opposite, all_dirs
 
 class TileIndex(object):
   def __init__(self):
@@ -82,6 +82,12 @@ class Board(object):
       for tile in self.remaining_tile_index.index[side]:
         valid_moves.append((tile, direction))
     return valid_moves
+
+  def can_play_tile(self, tile):
+    for direction in all_dirs():
+      if self.valid_move(tile, direction):
+        return True
+    return False
 
   def get_tiles_on_board(self):
     return self.main_row + self.up + self.down

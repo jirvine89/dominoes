@@ -1,15 +1,17 @@
 import sys, getopt
 import bots
+import algos
 from player import Player, is_valid_move_str, parse_move_str
 from game import Game
 from dominoes_util import Orientation
 from kivy.app import App
 from kivy.config import Config
+from kivy.graphics import Color
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.properties import (
-    NumericProperty, ReferenceListProperty, ObjectProperty, StringProperty
+    NumericProperty, ListProperty, ObjectProperty, StringProperty
 )
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -24,12 +26,14 @@ from kivy.vector import Vector
 
 TILE_WIDTH = 60
 TILE_HEIGHT = 2 * TILE_WIDTH
+TILE_BACKGROUND = [1., 1., 1., 1.]
 
 class TileWidget(Widget):
     image_file = StringProperty("./tile_images/upside_down.png")
     angle = NumericProperty(0)
     width = NumericProperty(TILE_WIDTH)
     height = NumericProperty(TILE_HEIGHT)
+    background = ListProperty(TILE_BACKGROUND)
 
 class BoardWidget(Widget):
     tile_widgets = []
@@ -39,7 +43,7 @@ class BoardWidget(Widget):
         for tile_widget in self.tile_widgets:
            self.remove_widget(tile_widget)
 
-    def add_tile(self, tile, x, y, direction):
+    def add_tile(self, tile, x, y, direction, is_spinner=False):
         tile_widget = TileWidget()
         tile_widget.image_file = tile.get_image_file()
         x_offset, y_offset = 0, 0
@@ -58,6 +62,8 @@ class BoardWidget(Widget):
                 y_offset = -TILE_WIDTH
             else:
                 y_offset = TILE_WIDTH
+        if is_spinner:
+            tile_widget.background = [0.6, 0.8, 0.9, 1.0]
         tile_widget.x = x + x_offset / 2
         tile_widget.y = y + y_offset / 2
         self.add_widget(tile_widget)
@@ -70,14 +76,16 @@ class BoardWidget(Widget):
         x = self.x
         y = self.y + self.height / 2 - TILE_HEIGHT /2
         for tile in board.main_row:
-            x_shift = TILE_WIDTH + self.add_tile(tile, x, y, 'RIGHT')
-            if board.spinner and tile == board.spinner:
+            is_spinner = board.spinner and tile == board.spinner
+            x_shift = TILE_WIDTH + self.add_tile(tile, x, y, 'RIGHT', is_spinner)
+            if board.spinner and is_spinner:
                 bottom = y
                 top = bottom + TILE_HEIGHT
                 for up_tile in board.up:
                     top += TILE_HEIGHT + self.add_tile(up_tile, x, top, 'UP')
                 for down_tile in board.down:
-                    bottom -= TILE_HEIGHT - self.add_tile(down_tile, x, bottom - TILE_HEIGHT, 'DOWN')
+                    bottom -= TILE_HEIGHT - self.add_tile(
+                        down_tile, x, bottom - TILE_HEIGHT, 'DOWN')
             x += x_shift
 
 
@@ -118,13 +126,17 @@ class HandWidget(BoxLayout):
         for tile_widget in self.tile_widgets:
             self.remove_widget(tile_widget)
 
-    def set_hand(self, hand, hidden=False):
+    def set_hand(self, board, hand, my_turn, hidden=False):
         self.reset()
         self.cols = len(hand)
         for tile in sorted(list(hand)):
             tile_widget = TileWidget()
             if not hidden:
                 tile_widget.image_file = tile.get_image_file()
+                if my_turn and board.can_play_tile(tile):
+                   tile_widget.background = [1.0, 0.9, 0.6, 1.0]
+                else:
+                    tile_widget.background = TILE_BACKGROUND
             self.tile_widgets.append(tile_widget)
             self.add_widget(tile_widget)
             self.width += TILE_WIDTH + self.spacing
@@ -157,8 +169,9 @@ class DominoGame(Widget):
         print self.bot2
 
     def update_widgets(self, hidden):
-        self.player1_hand.set_hand(self.player1.hand)
-        self.player2_hand.set_hand(self.player2.hand, hidden=hidden)
+        p1_turn = True
+        self.player1_hand.set_hand(self.game.board, self.player1.hand, p1_turn)
+        self.player2_hand.set_hand(self.game.board, self.player2.hand, not p1_turn, hidden=hidden)
         self.boneyard.set_boneyard(len(self.game.board.bone_yard))
         self.board.set_board(self.game.board)
         self.scoreboard.set_scoreboard(self.player1, self.player2)
@@ -193,11 +206,16 @@ class DominoGame(Widget):
                 tile, direction = parse_move_str(move_str)
                 if tile:
                     if tile not in player.hand:
-                        self.text.ids["label"].text = "%s not in %s's hand" % (str(tile), player.name)
+                        self.text.ids["label"].text = (
+                            "%s not in %s's hand" % (str(tile), player.name))
                         return
                     if not self.game.board.valid_move(tile, direction):
                         self.text.ids["label"].text = ("%s, %s is not a valid move"
                                                        % (str(tile), str(direction)))
+                        return
+                else:
+                    if algos.get_valid_moves(self.game.board, player.hand):
+                        self.text.ids["label"].text = ("Can't pass, you have a valid move")
                         return
                 self.game.make_move_or_knock(tile, direction)
         self.update_widgets(not self.game.round_over)
@@ -220,7 +238,7 @@ class DominoApp(App):
 if __name__ == "__main__":
     opts, args = getopt.getopt(sys.argv[1:], "s", ["bot1=","bot2=","play_to="])
     show = ('-s', '') in opts or '-s' in opts
-    bot1, bot2 = "GreedyDefensiveBot", "GreedyDefensiveBot"
+    bot1, bot2 = "D4TreeBot", "D4TreeBot"
     play_to = 150
     for opt, arg in opts:
         if opt == "--bot1":
