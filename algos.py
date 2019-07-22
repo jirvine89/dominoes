@@ -10,19 +10,11 @@ from collections import defaultdict
 from dominoes_util import Dir, all_dirs, opposite
 
 def get_valid_moves(board, hand=None):
-    all_valid_moves = board.get_valid_moves()
+    all_valid_moves = board.get_unique_valid_moves()
     if hand:
         return [move for move in all_valid_moves if move[0] in hand]
     else:
         return all_valid_moves
-    #valid_moves = []
-    #if not hand:
-    #    hand = set(get_all_tiles()) - set(board.get_tiles_on_board())
-    #for tile in hand:
-    #    for direction in all_dirs():
-    #        if board.valid_move(tile, direction):
-    #            valid_moves.append((tile, direction))
-    #return valid_moves
 
 def get_other_tiles(board, hand):
     return set(get_all_tiles()) - set(hand) - set(board.get_tiles_on_board())
@@ -139,11 +131,6 @@ def game_state_value(gs):
 # TODO: speed this up
 def board_is_boxed_out(board):
     return not board.get_valid_moves()
-    #for tile in set(get_all_tiles()) - set(board.get_tiles_on_board()):
-    #    for direction in all_dirs():
-    #        if board.valid_move(tile, direction):
-    #            return False
-    #return True
 
 def playable_moves(board, tile):
     playable_moves = []
@@ -443,14 +430,6 @@ def tree_search(depth, game_state, tree_node=None):
                 for opp_move, prob in prob_moves_draw.iteritems():
                     opp_move_node = opp_tree_node_draw_from_move[opp_move]
                     opp_move_node.prob = prob
-            # Get expected value from these moves
-            # Sort opponent values, lowest first
-            # EV_dict[my_move] = dot product of values and probs
-            #opp_tile_vals = move_dict_to_sorted_list_by_tiles(opp_move_vals)
-            #opp_tile_vals_draw = move_dict_to_sorted_list_by_tiles(opp_move_vals_draw)
-            #ev = expected_value_opp_moves(opp_tile_vals, game_state.opp_hand_size, len(other_tiles))
-            #draw_val = expected_value_opp_draw(opp_tile_vals_draw, prob_draw)
-            #ev += draw_val
             EV_dict[move] = ev
         # Add child tree node for this move
         if tree_node:

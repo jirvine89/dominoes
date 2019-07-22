@@ -34,8 +34,16 @@ class TreeBot(Bot):
         self.depth = depth
 
     def pick_move(self, game_state):
-        ev_dict = algos.tree_search(self.depth, game_state)
-        return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
+        board = game_state.board
+        hand = game_state.hand
+        unique_valid_moves = algos.get_valid_moves(board, hand)
+        if len(unique_valid_moves) == 0:
+            return (None, None)
+        elif len(unique_valid_moves) == 1:
+            return list(unique_valid_moves)[0]
+        else:
+            ev_dict = algos.tree_search(self.depth, game_state)
+            return max(ev_dict.iteritems(), key=op.itemgetter(1))[0]
 
 # 95% CI for 100 trials = 8.5%
 # 95% CI for 1k trials = 2.7%
@@ -49,7 +57,7 @@ class D0TreeBot(TreeBot):
 class D1TreeBot(TreeBot):
     # vs GreedyDefensiveBot: 56% of 1k
     # vs GreedyBot: 69% of 1k
-    # ~2 mins for 1k games
+    # ~3 mins for 1k games
     def __init__(self, player_name=None):
         super(D1TreeBot, self).__init__(1, player_name)
 
@@ -57,7 +65,7 @@ class D2TreeBot(TreeBot):
     # vs GreedyDefensiveBot: 64% of 1k
     # vs GreedyBot: 75% of 100
     # vs RandomBot: 91% of 100
-    # ~2 mins for 100 games
+    # ~1 min for 100 games
     def __init__(self, player_name=None):
         super(D2TreeBot, self).__init__(2, player_name)
 

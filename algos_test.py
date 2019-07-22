@@ -38,14 +38,6 @@ class TestAlgos(unittest.TestCase):
         #valid_moves = algos.get_valid_moves(self.board, hand)
         all_valid_moves = self.board.get_valid_moves()
         valid_moves = [move for move in all_valid_moves if move[0] in hand]
-        #print
-        #print self.board.end_sides
-        #for k,v in self.board.playable_moves.items():
-        #    print k, v
-        #print all_valid_moves
-        #print hand
-        #print valid_moves
-        #print
         expected = [
             (Tile(6, 2), Dir.LEFT),
             (Tile(6, 2), Dir.DOWN),

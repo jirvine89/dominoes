@@ -23,3 +23,26 @@
   - Box out with numbers you have
   - Keep open if on serve, closed if not
   - Tile values, consider follow-up tiles
+
+RL NOTES:
+* Encoding game state:
+  - 28 rows, representing each move of game so far
+  - Each row:
+    + 28 bits for tiles in hand
+    + 28 bits for tiles on board
+    + 28 x 4 bits for tile at each end (all 0s if can't play)
+    + 28 bits for spinner
+    + 1 bit for whose turn
+    + 1 number for tiles in opp hand
+    + 1 number for my score
+    + 1 number for opp score
+  - Total: 28 x ((28 x 7) + 1) + 3nums)
+* Encoding moves:
+  - 28 x 4 bits (tile & direction)
+* TODO: 
+  - Code to go from game state and move to next game state
+  - How to handle incomplete info of each player and still
+    move the game (game vs game-state)
+     + Keep a opp hand vector, but don't let player see 
+       opponent when learning state value
+

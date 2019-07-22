@@ -42,10 +42,38 @@ class Board(object):
   def _valid_starting_moves(self):
     return [(t, Dir.RIGHT) for t in get_all_tiles()]
 
+  def get_unique_valid_moves(self):
+    if not self.main_row:
+      return self._valid_starting_moves()
+    # Handle case of two moves off a double: only spinner on board
+    if len(self.main_row) == 1 and self.spinner:
+      dirs = [Dir.RIGHT]
+    else:
+      dirs = [Dir.RIGHT, Dir.LEFT]
+      if self._can_play_up_or_down():
+        if not self.up and not self.down:
+          dirs += [Dir.UP]
+        else:
+          dirs += [Dir.UP, Dir.DOWN]
+    valid_moves = []
+    # Keep track of the single sides seen, if seen already, skip
+    single_sides_seen = set()
+    for direction in dirs:
+      side = self.end_sides[direction]
+      side_is_double = self.end_is_double(direction)
+      if not side_is_double:
+        if side in single_sides_seen:
+          continue
+        else:
+          single_sides_seen.add(side)
+      for tile in self.remaining_tile_index.index[side]:
+        valid_moves.append((tile, direction))
+    return valid_moves
+
   def get_valid_moves(self):
     if not self.main_row:
       return self._valid_starting_moves()
-    dirs = [Dir.LEFT, Dir.RIGHT]
+    dirs = [Dir.RIGHT, Dir.LEFT]
     if self._can_play_up_or_down():
       dirs += [Dir.UP, Dir.DOWN]
     valid_moves = []
@@ -98,9 +126,13 @@ class Board(object):
     elif direction == Dir.UP:
       if self.up:
         return self.up[-1].is_double()
+      else:
+        return True
     elif direction == Dir.DOWN:
       if self.down:
         return self.down[-1].is_double()
+      else:
+        return True
     return False
 
   def _orientation_big_side_in_or_out(self, direction, out):

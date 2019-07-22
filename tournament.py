@@ -26,6 +26,7 @@ def play_game(game, bot1, bot2):
         # Make move on board
         game.make_move_or_knock(*bot_move)
         i += 1
+    print game
     assert False
 
 def main(argv):
